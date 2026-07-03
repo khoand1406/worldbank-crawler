@@ -1,0 +1,55 @@
+# Windows:
+# ===================
+.exe
+.exe~
+.dll
+.so
+.dylib
+
+# Tệp thực thi / Binary đầu ra
+# ===================
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Nếu bạn build binary ra một thư mục riêng (ví dụ: bin/ hoặc dist/)
+bin/
+dist/
+
+# Thư mục chứa các gói phụ thuộc (Dependencies)
+# ===================
+# Thường Golang dùng Go Modules nên không cần commit thư mục vendor 
+# (Trừ khi team bạn có policy bắt buộc lưu vendor trong git)
+vendor/
+
+# Các file cấu hình môi trường và bảo mật (CHỨA PASSWORD/TOKEN)
+# ===================
+.env
+.env.*
+!.env.example # Giữ lại file example để làm mẫu cho người sau
+
+# File rác của các IDE phổ biến
+# ===================
+# JetBrains (GoLand, IntelliJ, v.v.)
+.idea/
+*.iws
+*.iml
+
+# VS Code
+.vscode/
+!.vscode/extensions.json # Giữ lại nếu muốn gợi ý extension cho team
+
+# File hệ điều hành
+# ===================
+.DS_Store
+Thumbs.db
+
+# Kiểm thử và Coverage report
+# ===================
+c.out
+coverage.txt
+profile.out
