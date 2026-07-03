@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"worldbank-crawler/internal/model"
+	types "worldbank-crawler/internal/type"
 )
 
 type Client struct {
@@ -28,7 +28,13 @@ type FetchOptions struct {
 	Order   string
 	StrDate string
 	EndDate string
-	Fields  []string
+
+	SourceFilterField string
+	SourceFilterValue string
+
+	CountryKey string
+	Language   string
+	Fields     []string
 }
 
 func NewClient(baseURL string) *Client {
@@ -124,11 +130,22 @@ func (c *Client) buildUrl(opt FetchOptions) (string, error) {
 	if strings.TrimSpace(opt.EndDate) != "" {
 		q.Set("enddate", strings.TrimSpace(opt.EndDate))
 	}
+	if opt.SourceFilterField != "" && opt.SourceFilterValue != "" {
+		q.Set(opt.SourceFilterField, opt.SourceFilterValue)
+	}
+
+	if opt.CountryKey != "" {
+		q.Set("count_exact", opt.CountryKey)
+	}
+
+	if opt.Language != "" {
+		q.Set("lang_exact", opt.Language)
+	}
 	u.RawQuery = q.Encode()
 	return u.String(), nil
 }
 
-func (c *Client) FetchDocuments(ctx context.Context, opt FetchOptions) ([]model.WorldBankDocument, *model.WorldBankAPIResponse, error) {
+func (c *Client) FetchDocuments(ctx context.Context, opt FetchOptions) ([]types.WorldBankDocument, *types.WorldBankAPIResponse, error) {
 	if opt.Rows <= 0 {
 		opt.Rows = 100
 	}
@@ -163,7 +180,7 @@ func (c *Client) FetchDocuments(ctx context.Context, opt FetchOptions) ([]model.
 	if _, err := body.ReadFrom(resp.Body); err != nil {
 		return nil, nil, fmt.Errorf("read response from body failed: %w", err)
 	}
-	var apiRespone model.WorldBankAPIResponse
+	var apiRespone types.WorldBankAPIResponse
 	if err := json.Unmarshal(body.Bytes(), &apiRespone); err != nil {
 		return nil, nil, fmt.Errorf("decode response failed: %w", err)
 	}
@@ -174,7 +191,7 @@ func (c *Client) FetchDocuments(ctx context.Context, opt FetchOptions) ([]model.
 		return nil, nil, fmt.Errorf("decode raw documents failed: %w", err)
 	}
 
-	items := make([]model.WorldBankDocument, 0, len(apiRespone.Documents))
+	items := make([]types.WorldBankDocument, 0, len(apiRespone.Documents))
 	for apiKey, doc := range apiRespone.Documents {
 		if strings.TrimSpace(doc.ID) == "" {
 			log.Printf("skip invalid document: api_key=%s empty id", apiKey)

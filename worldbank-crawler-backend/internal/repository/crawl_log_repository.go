@@ -2,15 +2,16 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type CrawlLogRepository struct {
-	db *sql.DB
+	db *pgxpool.Pool
 }
 
-func NewCrawlLogRepository(db *sql.DB) *CrawlLogRepository {
+func NewCrawlLogRepository(db *pgxpool.Pool) *CrawlLogRepository {
 	return &CrawlLogRepository{
 		db: db,
 	}
@@ -22,7 +23,7 @@ func (r *CrawlLogRepository) Create(
 ) (int64, error) {
 	var id int64
 
-	err := r.db.QueryRowContext(
+	err := r.db.QueryRow(
 		ctx,
 		`
 		INSERT INTO crawl_logs (
@@ -55,7 +56,7 @@ func (r *CrawlLogRepository) Finish(
 	totalSaved int,
 	errorMessage string,
 ) error {
-	_, err := r.db.ExecContext(
+	_, err := r.db.Exec(
 		ctx,
 		`
 		UPDATE crawl_logs

@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 	"worldbank-crawler/internal/client"
-	"worldbank-crawler/internal/model"
 	"worldbank-crawler/internal/repository"
+	types "worldbank-crawler/internal/type"
 )
 
 type WorldBankCrawlService struct {
@@ -185,8 +185,8 @@ func (s *WorldBankCrawlService) Crawl(ctx context.Context) error {
 	return nil
 }
 
-func (s *WorldBankCrawlService) fetchPage(ctx context.Context, offset int) ([]model.WorldBankDocument,
-	*model.WorldBankAPIResponse, error) {
+func (s *WorldBankCrawlService) fetchPage(ctx context.Context, offset int) ([]types.WorldBankDocument,
+	*types.WorldBankAPIResponse, error) {
 	docs, resp, err := s.client.FetchDocuments(ctx, client.FetchOptions{
 		Rows:    s.rowsPerPage,
 		Offset:  offset,
@@ -275,7 +275,7 @@ func (s *WorldBankCrawlService) fetchPageWithDate(
 	offset int,
 	strDate string,
 	endDate string,
-) ([]model.WorldBankDocument, *model.WorldBankAPIResponse, error) {
+) ([]types.WorldBankDocument, *types.WorldBankAPIResponse, error) {
 	docs, resp, err := s.client.FetchDocuments(ctx, client.FetchOptions{
 		Rows:    s.rowsPerPage,
 		Offset:  offset,

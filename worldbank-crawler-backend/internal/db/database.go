@@ -1,38 +1,48 @@
 package db
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"time"
 
 	"worldbank-crawler/internal/config"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/lib/pq"
 )
 
-func ConnectDB(cfg config.AppConfig) (*sql.DB, error) {
+func ConnectDB(cfg config.AppConfig) (*pgxpool.Pool, error) {
 	dsn := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		cfg.DBHost,
-		cfg.DBPort,
+		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		cfg.DBUser,
 		cfg.DBPassword,
+		cfg.DBHost,
+		cfg.DBPort,
 		cfg.DBName,
 	)
 
-	database, err := sql.Open("postgres", dsn)
+	poolConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
-		return nil, fmt.Errorf("open database failed: %w", err)
+		return nil, fmt.Errorf("parse database config failed: %w", err)
 	}
 
-	database.SetMaxOpenConns(10)
-	database.SetMaxIdleConns(5)
-	database.SetConnMaxLifetime(30 * time.Minute)
+	poolConfig.MaxConns = 10
+	poolConfig.MinConns = 2
+	poolConfig.MaxConnLifetime = 30 * time.Minute
+	poolConfig.MaxConnIdleTime = 10 * time.Minute
 
-	if err := database.Ping(); err != nil {
-		database.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+	if err != nil {
+		return nil, fmt.Errorf("create database pool failed: %w", err)
+	}
+
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close()
 		return nil, fmt.Errorf("ping database failed: %w", err)
 	}
 
-	return database, nil
+	return pool, nil
 }
