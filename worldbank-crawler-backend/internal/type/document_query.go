@@ -40,8 +40,9 @@ type DocumentListItem struct {
 	DocType      string `json:"doc_type"`
 	MajorDocType string `json:"major_doc_type"`
 
-	Country string `json:"country"`
-	Region  string `json:"region"`
+	Country    string `json:"country"`
+	CountryKey string `json:"countryKey"`
+	Region     string `json:"region"`
 
 	Language string `json:"language"`
 

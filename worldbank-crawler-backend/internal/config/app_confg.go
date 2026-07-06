@@ -4,179 +4,108 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 type AppConfig struct {
+	AppEnv     string
+	ServerAddr string
+
 	DBHost     string
 	DBPort     string
 	DBUser     string
 	DBPassword string
 	DBName     string
+	DBSSLMode  string
 
-	WorldBankURL string
-	CronSchedule string
+	WorldBankBaseURL string
 
-	RowsPerPage int
-	MaxPages    int
-
-	QTerm   string
-	StrDate string
-	EndDate string
-
+	RowsPerPage  int
 	RequestDelay time.Duration
-	CrawlTimeout time.Duration
-	RunOnStartup bool
+	MaxJobLimit  int
 
-	CrawlMode string
-	StartYear int
-	EndYear   int
+	SyncJobTimeout time.Duration
 }
 
 func LoadConfig() (AppConfig, error) {
-	dbHost, err := requireEnv("DB_HOST")
-	if err != nil {
-		return AppConfig{}, err
+	_ = godotenv.Load()
+
+	cfg := AppConfig{
+		AppEnv:     getEnv("APP_ENV", "development"),
+		ServerAddr: getEnv("SERVER_ADDR", ":8080"),
+
+		DBHost:     getEnv("DB_HOST", "localhost"),
+		DBPort:     getEnv("DB_PORT", "5432"),
+		DBUser:     getEnv("DB_USER", "postgres"),
+		DBPassword: getEnv("DB_PASSWORD", ""),
+		DBName:     getEnv("DB_NAME", "worldbank_crawler"),
+		DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
+
+		WorldBankBaseURL: getEnv("WORLDBANK_BASE_URL", "https://search.worldbank.org/api/v3/wds"),
+
+		RowsPerPage: getEnvAsInt("ROWS_PER_PAGE", 100),
+		MaxJobLimit: getEnvAsInt("MAX_JOB_LIMIT", 10000),
+
+		RequestDelay:   time.Duration(getEnvAsInt("REQUEST_DELAY_MS", 500)) * time.Millisecond,
+		SyncJobTimeout: time.Duration(getEnvAsInt("SYNC_JOB_TIMEOUT_MINUTES", 30)) * time.Minute,
 	}
 
-	dbPort, err := requireEnv("DB_PORT")
-	if err != nil {
-		return AppConfig{}, err
+	if cfg.DBPassword == "" {
+		return AppConfig{}, fmt.Errorf("DB_PASSWORD is required")
 	}
 
-	dbUser, err := requireEnv("DB_USER")
-	if err != nil {
-		return AppConfig{}, err
+	if cfg.RowsPerPage <= 0 {
+		cfg.RowsPerPage = 100
 	}
 
-	dbPassword, err := requireEnv("DB_PASSWORD")
-	if err != nil {
-		return AppConfig{}, err
+	if cfg.MaxJobLimit <= 0 {
+		cfg.MaxJobLimit = 10000
 	}
 
-	dbName, err := requireEnv("DB_NAME")
-	if err != nil {
-		return AppConfig{}, err
+	if cfg.MaxJobLimit > 10000 {
+		cfg.MaxJobLimit = 10000
 	}
 
-	worldBankURL, err := requireEnv("WORLD_BANK_URL")
-	if err != nil {
-		return AppConfig{}, err
+	if cfg.SyncJobTimeout <= 0 {
+		cfg.SyncJobTimeout = 30 * time.Minute
 	}
 
-	cronSchedule, err := requireEnv("CRON_SCHEDULE")
-	if err != nil {
-		return AppConfig{}, err
-	}
-
-	rowsPerPage, err := requireEnvInt("ROWS_PER_PAGE")
-	if err != nil {
-		return AppConfig{}, err
-	}
-
-	maxPages, err := requireEnvInt("MAX_PAGES")
-	if err != nil {
-		return AppConfig{}, err
-	}
-
-	requestDelayMS, err := requireEnvInt("REQUEST_DELAY_MS")
-	if err != nil {
-		return AppConfig{}, err
-	}
-
-	crawlTimeoutMinutes, err := requireEnvInt("CRAWL_TIMEOUT_MINUTES")
-	if err != nil {
-		return AppConfig{}, err
-	}
-
-	runOnStartup, err := requireEnvBool("RUN_ON_STARTUP")
-	if err != nil {
-		return AppConfig{}, err
-	}
-
-	return AppConfig{
-		DBHost:     dbHost,
-		DBPort:     dbPort,
-		DBUser:     dbUser,
-		DBPassword: dbPassword,
-		DBName:     dbName,
-
-		WorldBankURL: worldBankURL,
-		CronSchedule: cronSchedule,
-
-		RowsPerPage: rowsPerPage,
-		MaxPages:    maxPages,
-
-		QTerm:   os.Getenv("QTERM"),
-		StrDate: os.Getenv("STR_DATE"),
-		EndDate: os.Getenv("END_DATE"),
-
-		RequestDelay: time.Duration(requestDelayMS) * time.Millisecond,
-		CrawlTimeout: time.Duration(crawlTimeoutMinutes) * time.Minute,
-		RunOnStartup: runOnStartup,
-		CrawlMode:    os.Getenv("CRAWL_MODE"),
-		StartYear: func() int {
-			year, err := requireEnvInt("START_YEAR")
-			if err != nil {
-				return 0
-			}
-			return year
-		}(),
-		EndYear: func() int {
-			year, err := requireEnvInt("END_YEAR")
-			if err != nil {
-				return 0
-			}
-			return year
-		}(),
-	}, nil
+	return cfg, nil
 }
 
-func (c AppConfig) DatabaseURL() string {
+func (c AppConfig) PostgresDSN() string {
 	return fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		c.DBUser,
 		c.DBPassword,
 		c.DBHost,
 		c.DBPort,
 		c.DBName,
+		c.DBSSLMode,
 	)
 }
 
-func requireEnv(key string) (string, error) {
-	value := strings.TrimSpace(os.Getenv(key))
+func getEnv(key string, fallback string) string {
+	value := os.Getenv(key)
 	if value == "" {
-		return "", fmt.Errorf("missing required environment variable: %s", key)
+		return fallback
 	}
 
-	return value, nil
+	return value
 }
 
-func requireEnvInt(key string) (int, error) {
-	value, err := requireEnv(key)
-	if err != nil {
-		return 0, err
+func getEnvAsInt(key string, fallback int) int {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
 	}
 
 	parsed, err := strconv.Atoi(value)
 	if err != nil {
-		return 0, fmt.Errorf("environment variable %s must be an integer, got %q", key, value)
+		return fallback
 	}
 
-	return parsed, nil
-}
-
-func requireEnvBool(key string) (bool, error) {
-	value, err := requireEnv(key)
-	if err != nil {
-		return false, err
-	}
-
-	parsed, err := strconv.ParseBool(value)
-	if err != nil {
-		return false, fmt.Errorf("environment variable %s must be boolean, got %q", key, value)
-	}
-
-	return parsed, nil
+	return parsed
 }

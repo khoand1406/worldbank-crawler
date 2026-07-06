@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -31,6 +32,9 @@ type FetchOptions struct {
 
 	SourceFilterField string
 	SourceFilterValue string
+
+	MajorDocType string
+	DocType      string
 
 	CountryKey string
 	Language   string
@@ -212,4 +216,55 @@ func (c *Client) FetchDocuments(ctx context.Context, opt FetchOptions) ([]types.
 		len(items),
 	)
 	return items, &apiRespone, nil
+}
+
+func (c *Client) FetchDocumentsWithMeta(ctx context.Context, opt FetchOptions) ([]types.WorldBankDocument, *types.WorldBankAPIResponse, string, int, error) {
+	reqUrl, err := c.buildUrl(opt)
+	if err != nil {
+		return nil, nil, "", 0, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, nil)
+	if err != nil {
+		return nil, nil, "", 0, err
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, nil, "", 0, err
+	}
+	defer resp.Body.Close()
+	httpStatus := resp.StatusCode
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, nil, reqUrl, httpStatus, fmt.Errorf("received non-2xx response: %d", resp.StatusCode)
+	}
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, nil, reqUrl, httpStatus, err
+	}
+	var apiResp types.WorldBankAPIResponse
+	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
+		return nil, nil, "", 0, err
+	}
+	var rawResp struct {
+		Documents map[string]json.RawMessage `json:"documents"`
+	}
+
+	if err := json.Unmarshal(bodyBytes, &rawResp); err != nil {
+		return nil, nil, reqUrl, httpStatus, err
+	}
+	docs := make([]types.WorldBankDocument, 0, len(apiResp.Documents))
+	for apiKey, doc := range apiResp.Documents {
+		if doc.ID == "" {
+			log.Printf("skip invalid document: api_key=%s empty id", apiKey)
+			continue
+		}
+
+		doc.APIKey = apiKey
+
+		if rawJSON, ok := rawResp.Documents[apiKey]; ok {
+			doc.RawData = rawJSON
+		}
+
+		docs = append(docs, doc)
+	}
+	return docs, &apiResp, reqUrl, httpStatus, nil
 }

@@ -2,9 +2,16 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"worldbank-crawler/internal/api/handler"
+	"worldbank-crawler/internal/api/router"
 	"worldbank-crawler/internal/client"
 	"worldbank-crawler/internal/config"
 	"worldbank-crawler/internal/db"
@@ -12,7 +19,6 @@ import (
 	"worldbank-crawler/internal/service"
 
 	"github.com/joho/godotenv"
-	"github.com/robfig/cron/v3"
 )
 
 func main() {
@@ -23,74 +29,65 @@ func main() {
 		log.Fatalf("load config failed: %v", err)
 	}
 
-	database, err := db.ConnectDB(appConfig)
+	rootCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	database, err := db.ConnectDB(rootCtx, appConfig)
 	if err != nil {
 		log.Fatalf("connect to database failed: %v", err)
 	}
 	defer database.Close()
+	worldbankClient := client.NewClient(appConfig.WorldBankBaseURL)
+	documentRepo := repository.NewWorldBankDocumentRepository(database)
+	syncJobRepo := repository.NewSyncJobRepository(database)
+	auditLogRepo := repository.NewAuditLogRepository(database)
+	syncSourceRepo := repository.NewSyncSourceRepository(database)
 
-	worldBankClient := client.NewClient(appConfig.WorldBankURL)
-
-	worldBankRepo := repository.NewWorldBankDocumentRepository(database)
-	crawlLogRepo := repository.NewCrawlLogRepository(database)
-
-	crawlService := service.NewWorldBankCrawlService(
-		worldBankClient,
-		worldBankRepo,
-		crawlLogRepo,
-		service.WorldbankCrawlServiceConfig{
-			RowsPerPage:  appConfig.RowsPerPage,
-			MaxPages:     appConfig.MaxPages,
-			QTerm:        appConfig.QTerm,
-			StrDate:      appConfig.StrDate,
-			EndDate:      appConfig.EndDate,
-			RequestDelay: appConfig.RequestDelay,
+	syncService := service.NewSyncService(
+		database,
+		worldbankClient,
+		documentRepo,
+		auditLogRepo,
+		syncJobRepo,
+		syncSourceRepo,
+		service.SyncServiceConfig{
+			RowsPerPage:    appConfig.RowsPerPage,
+			RequestDelay:   appConfig.RequestDelay,
+			MaxJobLimit:    appConfig.MaxJobLimit,
+			SyncJobTimeout: appConfig.SyncJobTimeout,
 		},
 	)
 
-	if appConfig.RunOnStartup {
-		runCrawlWithTimeout(crawlService, appConfig, appConfig.CrawlTimeout, "initial")
-	}
-
-	c := cron.New()
-
-	_, err = c.AddFunc(appConfig.CronSchedule, func() {
-		runCrawlWithTimeout(crawlService, appConfig, appConfig.CrawlTimeout, "scheduled")
+	syncjobHandler := handler.NewSyncJobHandler(syncService, syncJobRepo, auditLogRepo)
+	documentHandler := handler.NewDocumentHandler(documentRepo)
+	router := router.NeuRouter(router.RouteDependency{
+		SyncJobHandler:  syncjobHandler,
+		DocumentHandler: documentHandler,
 	})
-
-	if err != nil {
-		log.Fatalf("failed to add cron job: %v", err)
+	server := &http.Server{
+		Addr:         appConfig.ServerAddr,
+		Handler:      router,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
+	go func() {
+		log.Printf("server started addr=%s env=%s", appConfig.ServerAddr, appConfig.AppEnv)
 
-	c.Start()
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("server listen failed: %v", err)
+		}
+	}()
+	<-rootCtx.Done()
 
-	log.Printf("WorldBank crawler started. cron=%s", appConfig.CronSchedule)
+	log.Println("server shutting down...")
 
-	select {}
-}
-
-func runCrawlWithTimeout(
-	crawlService *service.WorldBankCrawlService,
-	appConfig config.AppConfig,
-	timeout time.Duration,
-	label string,
-) {
-	runCtx, cancel := context.WithTimeout(context.Background(), timeout)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if appConfig.CrawlMode == "full_by_year" {
-		err := crawlService.CrawlAllByYear(
-			runCtx,
-			appConfig.StartYear,
-			appConfig.EndYear,
-		)
-		if err != nil {
-			log.Printf("%s full crawl failed: %v", label, err)
-		}
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Printf("server shutdown failed: %v", err)
 		return
 	}
+	log.Println("server stopped")
 
-	if err := crawlService.Crawl(runCtx); err != nil {
-		log.Printf("%s crawl failed: %v", label, err)
-	}
 }

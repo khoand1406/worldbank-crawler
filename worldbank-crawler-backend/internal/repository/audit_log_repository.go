@@ -5,15 +5,13 @@ import (
 	"database/sql"
 	"fmt"
 	"worldbank-crawler/internal/model"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type AuditLogRepository struct {
-	db *pgxpool.Pool
+	db DBTX
 }
 
-func NewAuditLogRepository(db *pgxpool.Pool) *AuditLogRepository {
+func NewAuditLogRepository(db DBTX) *AuditLogRepository {
 	return &AuditLogRepository{db: db}
 }
 

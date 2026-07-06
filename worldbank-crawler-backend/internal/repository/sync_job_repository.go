@@ -10,15 +10,13 @@ import (
 
 	"worldbank-crawler/internal/model"
 	types "worldbank-crawler/internal/type"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type SyncJobRepository struct {
-	db *pgxpool.Pool
+	db DBTX
 }
 
-func NewSyncJobRepository(db *pgxpool.Pool) *SyncJobRepository {
+func NewSyncJobRepository(db DBTX) *SyncJobRepository {
 	return &SyncJobRepository{
 		db: db,
 	}
