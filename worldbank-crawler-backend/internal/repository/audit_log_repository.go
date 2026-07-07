@@ -85,6 +85,30 @@ func (r *AuditLogRepository) LogApiCall(ctx context.Context, syncJobId int64, re
 	})
 }
 
+func (r *AuditLogRepository) LogDBBatch(
+	ctx context.Context,
+	syncJobID int64,
+	inserted int,
+	updated int,
+	failed int,
+	offset int,
+) error {
+	message := fmt.Sprintf(
+		"Page processed: inserted=%d updated=%d failed=%d offset=%d",
+		inserted,
+		updated,
+		failed,
+		offset,
+	)
+
+	return r.Create(ctx, model.CreateAuditLogInput{
+		SyncJobID: syncJobID,
+		Action:    model.AuditActionDBBatch,
+		Status:    model.AuditStatusSuccess,
+		Message:   message,
+	})
+}
+
 func (r *AuditLogRepository) LogDBInsert(
 	ctx context.Context,
 	syncJobID int64,
@@ -187,7 +211,9 @@ func (r *AuditLogRepository) ListBySyncJobId(ctx context.Context, syncJobID int6
 			&requestURL,
 			&documentID,
 			&message,
-			&errorDetail)
+			&errorDetail,
+			&item.DurationMS,
+			&item.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("scan audit log failed: %w", err)
 		}

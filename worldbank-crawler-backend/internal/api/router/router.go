@@ -27,7 +27,7 @@ func NeuRouter(deps RouteDependency) http.Handler {
 		})
 	})
 	r.Route("/api", func(r chi.Router) {
-		r.Route("sync-jobs", func(r chi.Router) {
+		r.Route("/sync-jobs", func(r chi.Router) {
 			r.Post("/", deps.SyncJobHandler.CreateSyncJob)
 			r.Get("/", deps.SyncJobHandler.ListSyncJobs)
 			r.Route("/{id}", func(r chi.Router) {
@@ -42,4 +42,5 @@ func NeuRouter(deps RouteDependency) http.Handler {
 			r.Get("/{id}", deps.DocumentHandler.GetDocument)
 		})
 	})
+	return r
 }

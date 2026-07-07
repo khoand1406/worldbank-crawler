@@ -3,6 +3,7 @@ package mapper
 import (
 	"encoding/json"
 	"errors"
+	"regexp"
 	"strconv"
 	"strings"
 	"worldbank-crawler/internal/model"
@@ -46,11 +47,11 @@ func MapWorldBankDocumentToDocument(
 		DateStored:       types.ParseTime(raw.DateStored),
 
 		DocType:      strings.TrimSpace(raw.DocumentType),
-		DocTypeKey:   "",
+		DocTypeKey:   mapperKey(raw.DocumentType),
 		MajorDocType: strings.TrimSpace(raw.MajorDocumentType),
 
 		Country:    strings.TrimSpace(raw.Country),
-		CountryKey: "",
+		CountryKey: mapperKey(raw.Country),
 		Region:     strings.TrimSpace(raw.Region),
 
 		ProjectID:   strings.TrimSpace(raw.ProjectID),
@@ -102,4 +103,18 @@ func parseOptionalInt(value string) *int {
 	}
 
 	return &parsed
+}
+
+var nonAlphaNum = regexp.MustCompile(`[^a-z0-9]+`)
+
+func mapperKey(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	if value == "" {
+		return ""
+	}
+
+	value = nonAlphaNum.ReplaceAllString(value, "_")
+	value = strings.Trim(value, "_")
+
+	return value
 }

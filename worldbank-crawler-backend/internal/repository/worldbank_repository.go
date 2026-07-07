@@ -18,7 +18,10 @@ func NewWorldBankDocumentRepository(db DBTX) *WorldBankDocumentRepository {
 	return &WorldBankDocumentRepository{db: db}
 }
 
-func (r *WorldBankDocumentRepository) ListDocuments(ctx context.Context, filter types.DocumentListQuery) (types.PagedResult[types.DocumentListItem], error) {
+func (r *WorldBankDocumentRepository) ListDocuments(
+	ctx context.Context,
+	filter types.DocumentListQuery,
+) (types.PagedResult[types.DocumentListItem], error) {
 	if filter.Page <= 0 {
 		filter.Page = 1
 	}
@@ -30,22 +33,26 @@ func (r *WorldBankDocumentRepository) ListDocuments(ctx context.Context, filter 
 	if filter.PageSize > 100 {
 		filter.PageSize = 100
 	}
+
 	whereSQL, args := buildDocumentQuery(filter)
+
 	countQuery := `
 		SELECT COUNT(*)
 		FROM documents
 	` + whereSQL
+
 	var total int
 
 	if err := r.db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 		return types.PagedResult[types.DocumentListItem]{}, fmt.Errorf("count documents failed: %w", err)
 	}
+
 	offset := (filter.Page - 1) * filter.PageSize
 
 	args = append(args, filter.PageSize, offset)
 
-	sortBy := normalizeDocumentSortBy(filter.SortBy)
-	sortOrder := normalizeSortOrder(filter.SortOrder)
+	sortBy := normalizeSortBy(filter.SortBy)
+	sortOrder := normalizeDocumentSortOrder(filter.SortOrder)
 
 	query := fmt.Sprintf(
 		`SELECT
@@ -64,17 +71,26 @@ func (r *WorldBankDocumentRepository) ListDocuments(ctx context.Context, filter 
 		FROM documents
 		%s
 		ORDER BY %s %s
-		LIMIT $%d OFFSET $%d`, whereSQL, sortBy, sortOrder, len(args)-1, len(args),
+		LIMIT $%d OFFSET $%d`,
+		whereSQL,
+		sortBy,
+		sortOrder,
+		len(args)-1,
+		len(args),
 	)
-	rows, err := r.db.Query(ctx, query, args)
+
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return types.PagedResult[types.DocumentListItem]{}, fmt.Errorf("list documents failed: %w", err)
 	}
 	defer rows.Close()
+
 	items := make([]types.DocumentListItem, 0)
+
 	for rows.Next() {
 		var item types.DocumentListItem
 		var docDate sql.NullTime
+
 		err := rows.Scan(
 			&item.ID,
 			&item.SourceType,
@@ -99,19 +115,20 @@ func (r *WorldBankDocumentRepository) ListDocuments(ctx context.Context, filter 
 
 		items = append(items, item)
 	}
+
 	if err := rows.Err(); err != nil {
 		return types.PagedResult[types.DocumentListItem]{}, fmt.Errorf("iterate documents failed: %w", err)
 	}
+
 	return types.PagedResult[types.DocumentListItem]{
 		Items:    items,
 		Page:     filter.Page,
-		PageSize: total,
+		PageSize: filter.PageSize,
 		Total:    total,
 	}, nil
-
 }
 
-func normalizeSortOrder(sortBy string) any {
+func normalizeSortBy(sortBy string) any {
 	switch sortBy {
 	case "doc_date":
 		return "doc_date"
@@ -130,7 +147,7 @@ func normalizeSortOrder(sortBy string) any {
 	}
 }
 
-func normalizeDocumentSortBy(sortOrder string) string {
+func normalizeDocumentSortOrder(sortOrder string) string {
 	switch strings.ToLower(sortOrder) {
 	case "asc":
 		return "ASC"
@@ -343,11 +360,11 @@ func (r *WorldBankDocumentRepository) Upsert(
 		doc.DateStored,
 
 		doc.DocType,
-		doc.DocTypeKey,
+		nullIfEmpty(doc.DocTypeKey),
 		doc.MajorDocType,
 
 		doc.Country,
-		doc.CountryKey,
+		nullIfEmpty(doc.CountryKey),
 		doc.Region,
 
 		doc.ProjectID,

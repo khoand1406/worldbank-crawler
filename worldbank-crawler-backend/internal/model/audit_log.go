@@ -5,10 +5,13 @@ import "time"
 type AuditAction string
 
 const (
-	AuditActionAPICall  AuditAction = "API_CALL"
+	AuditActionAPICall AuditAction = "API_CALL"
+
 	AuditActionDBInsert AuditAction = "DB_INSERT"
 	AuditActionDBUpdate AuditAction = "DB_UPDATE"
 	AuditActionDBError  AuditAction = "DB_ERROR"
+
+	AuditActionDBBatch AuditAction = "DB_BATCH"
 )
 
 type AuditStatus string
