@@ -1,10 +1,9 @@
 "use client";
 
-import { api, ApiError } from "@/lib/api";
-import { SourceType, CreateSyncJobPayload } from "@/lib/types";
 import { useState } from "react";
-
-
+import { Plus, Play, X } from "lucide-react";
+import { api, ApiError } from "@/lib/api";
+import type { CreateSyncJobPayload, SourceType } from "@/lib/types";
 
 const MAX_TARGET_LIMIT = 10000;
 const DEFAULT_TARGET_LIMIT = 1000;
@@ -15,7 +14,7 @@ interface CreateSyncJobFormProps {
 
 export default function CreateSyncJobForm({ onCreated }: CreateSyncJobFormProps) {
   const [open, setOpen] = useState(false);
-  const [sourceType, setSourceType] = useState<SourceType>("A");
+  const [sourceType, setSourceType] = useState<SourceType>("PROJECT_DOCUMENTS");
   const [targetLimit, setTargetLimit] = useState(DEFAULT_TARGET_LIMIT);
   const [qterm, setQterm] = useState("");
   const [countExact, setCountExact] = useState("");
@@ -61,21 +60,22 @@ export default function CreateSyncJobForm({ onCreated }: CreateSyncJobFormProps)
   if (!open) {
     return (
       <button type="button" className="btn-primary" onClick={() => setOpen(true)}>
-        + Tạo lượt đồng bộ
+        <Plus size={16} />
+        Tạo lượt đồng bộ
       </button>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card space-y-4 p-5">
+    <form onSubmit={handleSubmit} className="card space-y-5 p-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-ink">Lượt đồng bộ mới</p>
+        <p className="font-display text-sm font-bold text-ink">Lượt đồng bộ mới</p>
         <button
           type="button"
-          className="text-[13px] text-ink-soft/60 hover:text-ink"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink"
           onClick={() => setOpen(false)}
         >
-          Đóng
+          <X size={16} />
         </button>
       </div>
 
@@ -147,10 +147,15 @@ export default function CreateSyncJobForm({ onCreated }: CreateSyncJobFormProps)
         </div>
       </div>
 
-      {error && <p className="text-[13px] text-status-failed">{error}</p>}
+      {error && (
+        <p className="rounded-xl bg-status-failedSoft px-3 py-2 text-[13px] text-status-failed">
+          {error}
+        </p>
+      )}
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 border-t border-surface-line pt-4">
         <button type="submit" className="btn-primary" disabled={submitting}>
+          <Play size={15} />
           {submitting ? "Đang tạo…" : "Chạy đồng bộ"}
         </button>
         <button

@@ -1,4 +1,5 @@
-import { AuditLogResponse, CreateSyncJobPayload, DocumentFilters, DocumentListResponse, SyncJob, SyncJobListResponse, WbDocument } from "./types";
+import { mapSyncJob } from "@/helper/mapper";
+import { AuditLogResponse, CreateSyncJobPayload, DocumentFilters, DocumentListResponse, SyncJob, SyncJobListRawResponse, SyncJobListResponse, WbDocument } from "./types";
 
 
 const API_BASE_URL =
@@ -57,7 +58,6 @@ function buildQuery(params: Record<string, string | number | undefined>) {
 }
 
 export const api = {
-  // FR-3: danh sach tai lieu + bo loc + phan trang
   listDocuments(filters: DocumentFilters): Promise<DocumentListResponse> {
     const qs = buildQuery({
       q: filters.q,
@@ -78,11 +78,26 @@ export const api = {
     return request<WbDocument>(`/api/documents/${encodeURIComponent(id)}`);
   },
 
-  // FR-1: quan ly luot dong bo
-  listSyncJobs(page = 1, pageSize = 20): Promise<SyncJobListResponse> {
-    const qs = buildQuery({ page, page_size: pageSize });
-    return request<SyncJobListResponse>(`/api/sync-jobs${qs}`);
-  },
+  async listSyncJobs(
+  page = 1,
+  pageSize = 20
+): Promise<SyncJobListResponse> {
+  const offset = (page - 1) * pageSize;
+
+  const qs = buildQuery({
+    limit: pageSize,
+    offset,
+  });
+
+  const res = await request<SyncJobListRawResponse>(`/api/sync-jobs${qs}`);
+
+  return {
+    data: res.items.map(mapSyncJob),
+    total: res.items.length,
+    limit: res.limit,
+    offset: res.offset,
+  };
+},
 
   getSyncJob(id: string): Promise<SyncJob> {
     return request<SyncJob>(`/api/sync-jobs/${encodeURIComponent(id)}`);

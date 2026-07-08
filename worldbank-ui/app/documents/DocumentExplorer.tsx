@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ArrowUpRight, GitBranch } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import type { DocumentFilters, WbDocument } from "@/lib/types";
 import { formatDate } from "@/lib/format";
@@ -30,13 +31,10 @@ export default function DocumentsExplorer() {
     api
       .listDocuments(appliedFilters)
       .then((res) => {
-  if (cancelled) return;
-
-  console.log("Documents response:", res);
-
-  setDocuments(Array.isArray(res.items) ? res.items : []);
-  setTotal(typeof res.total === "number" ? res.total : 0);
-})
+        if (cancelled) return;
+        setDocuments(res.items);
+        setTotal(res.total);
+      })
       .catch((err: unknown) => {
         if (cancelled) return;
         setDocuments([]);
@@ -78,7 +76,7 @@ export default function DocumentsExplorer() {
 
       <div className="card overflow-hidden">
         {loading ? (
-          <EmptyState title="Đang tải danh sách tài liệu…" />
+          <EmptyState tone="loading" title="Đang tải danh sách tài liệu…" />
         ) : error ? (
           <EmptyState
             tone="error"
@@ -91,6 +89,7 @@ export default function DocumentsExplorer() {
             description="Thử nới lỏng bộ lọc, hoặc kiểm tra xem đã có lượt đồng bộ nào hoàn tất cho nhóm dữ liệu này chưa."
             action={
               <Link href="/sync-jobs" className="btn-secondary mt-2">
+                <GitBranch size={15} />
                 Xem lượt đồng bộ
               </Link>
             }
@@ -112,26 +111,30 @@ export default function DocumentsExplorer() {
                 </thead>
                 <tbody>
                   {documents.map((doc) => (
-                    <tr key={doc.id} className="hover:bg-paper">
+                    <tr key={doc.id} className="group transition-colors hover:bg-surface-muted">
                       <td className="td">
                         <StampId value={doc.id} />
                       </td>
                       <td className="td max-w-sm">
                         <Link
                           href={`/documents/${encodeURIComponent(doc.id)}`}
-                          className="font-medium text-ink hover:text-signal hover:underline"
+                          className="inline-flex items-center gap-1 font-medium text-ink hover:text-brand-600"
                         >
                           {doc.display_title}
+                          <ArrowUpRight
+                            size={13}
+                            className="opacity-0 transition-opacity group-hover:opacity-100"
+                          />
                         </Link>
                       </td>
-                      <td className="td text-ink-soft/80">{doc.count ?? "—"}</td>
-                      <td className="td text-ink-soft/80">{doc.docty ?? "—"}</td>
-                      <td className="td text-ink-soft/80">
+                      <td className="td text-ink-muted">{doc.count ?? "—"}</td>
+                      <td className="td text-ink-muted">{doc.docty ?? "—"}</td>
+                      <td className="td text-ink-muted">
                         {formatDate(doc.docdt)}
                       </td>
-                      <td className="td text-ink-soft/80">{doc.lang ?? "—"}</td>
+                      <td className="td text-ink-muted">{doc.lang ?? "—"}</td>
                       <td className="td">
-                        <span className="rounded-sm bg-signal-soft px-2 py-0.5 text-[11px] font-medium text-signal">
+                        <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent">
                           {doc.source_type}
                         </span>
                       </td>

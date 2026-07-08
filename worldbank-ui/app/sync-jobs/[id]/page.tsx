@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { ArrowLeft, ListFilter } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import type { AuditLogEntry, SyncJob } from "@/lib/types";
 import {
@@ -24,7 +25,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="eyebrow mb-1">{label}</p>
-      <p className="font-mono text-lg text-ink">{value}</p>
+      <p className="font-mono text-lg font-semibold text-ink">{value}</p>
     </div>
   );
 }
@@ -102,14 +103,18 @@ export default function SyncJobDetailPage() {
   });
 
   return (
-    <div className="mx-auto max-w-6xl px-8 py-8">
-      <Link href="/sync-jobs" className="mb-6 inline-block text-[13px] text-signal hover:underline">
-        ← Quay lại danh sách lượt đồng bộ
+    <div className="mx-auto max-w-6xl px-8 py-10">
+      <Link
+        href="/sync-jobs"
+        className="mb-6 inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-600 hover:text-brand-700"
+      >
+        <ArrowLeft size={14} />
+        Quay lại danh sách lượt đồng bộ
       </Link>
 
       {jobLoading ? (
         <div className="card p-10">
-          <EmptyState title="Đang tải chi tiết lượt đồng bộ…" />
+          <EmptyState tone="loading" title="Đang tải chi tiết lượt đồng bộ…" />
         </div>
       ) : jobError || !job ? (
         <div className="card p-10">
@@ -121,58 +126,65 @@ export default function SyncJobDetailPage() {
         </div>
       ) : (
         <div className="space-y-5">
-          <div className="card p-6">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <StampId value={job.id} />
-                <StatusBadge status={job.status} />
-              </div>
-              <span className="text-[13px] text-ink-soft/60">
-                {sourceTypeLabel(job.source_type)}
-              </span>
-            </div>
-
-            <ProgressBar fetched={job.fetched} target={job.target_limit} />
-
-            <div className="mt-6 grid grid-cols-2 gap-6 md:grid-cols-4">
-              <Stat label="Đã lấy / mục tiêu" value={`${formatNumber(job.fetched)} / ${formatNumber(job.target_limit)}`} />
-              <Stat label="Tổng số API báo có" value={formatNumber(job.total_available)} />
-              <Stat label="Thêm mới" value={formatNumber(job.inserted)} />
-              <Stat label="Cập nhật" value={formatNumber(job.updated)} />
-              <Stat label="Lỗi" value={formatNumber(job.failed_count)} />
-              <Stat label="Bắt đầu" value={formatDateTime(job.started_at)} />
-              <Stat label="Kết thúc" value={formatDateTime(job.finished_at)} />
-            </div>
-
-            {job.error && (
-              <div className="mt-6 rounded-sm border border-status-failed/30 bg-status-failed/5 p-4">
-                <p className="eyebrow mb-1 text-status-failed">Lỗi lượt đồng bộ</p>
-                <p className="text-sm text-status-failed">{job.error}</p>
-              </div>
-            )}
-
-            {Object.values(job.params).some(Boolean) && (
-              <div className="mt-6">
-                <p className="eyebrow mb-2">Bộ lọc đã dùng</p>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(job.params)
-                    .filter(([, v]) => v)
-                    .map(([k, v]) => (
-                      <span
-                        key={k}
-                        className="rounded-sm border border-paper-line bg-paper px-2 py-1 font-mono text-[12px] text-ink-soft"
-                      >
-                        {k}={String(v)}
-                      </span>
-                    ))}
+          <div className="card overflow-hidden">
+            <div className="bg-brand-gradient-soft px-6 py-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <StampId value={job.id} />
+                  <StatusBadge status={job.status} />
                 </div>
+                <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-brand-600 shadow-sm">
+                  {sourceTypeLabel(job.source_type)}
+                </span>
               </div>
-            )}
+            </div>
+
+            <div className="p-6">
+              <ProgressBar fetched={job.fetched} target={job.target_limit} />
+
+              <div className="mt-6 grid grid-cols-2 gap-6 md:grid-cols-4">
+                <Stat label="Đã lấy / mục tiêu" value={`${formatNumber(job.fetched)} / ${formatNumber(job.target_limit)}`} />
+                <Stat label="Tổng số API báo có" value={formatNumber(job.total_available)} />
+                <Stat label="Thêm mới" value={formatNumber(job.inserted)} />
+                <Stat label="Cập nhật" value={formatNumber(job.updated)} />
+                <Stat label="Lỗi" value={formatNumber(job.failed_count)} />
+                <Stat label="Bắt đầu" value={formatDateTime(job.started_at)} />
+                <Stat label="Kết thúc" value={formatDateTime(job.finished_at)} />
+              </div>
+
+              {job.error && (
+                <div className="mt-6 rounded-xl bg-status-failedSoft p-4">
+                  <p className="eyebrow mb-1 text-status-failed">Lỗi lượt đồng bộ</p>
+                  <p className="text-sm text-status-failed">{job.error}</p>
+                </div>
+              )}
+
+              {Object.values(job.params).some(Boolean) && (
+                <div className="mt-6">
+                  <p className="eyebrow mb-2">Bộ lọc đã dùng</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(job.params)
+                      .filter(([, v]) => v)
+                      .map(([k, v]) => (
+                        <span
+                          key={k}
+                          className="rounded-full border border-surface-line bg-surface-muted px-2.5 py-1 font-mono text-[12px] text-ink-muted"
+                        >
+                          {k}={String(v)}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="card overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-paper-line p-5">
-              <p className="text-sm font-semibold text-ink">Nhật ký vận hành</p>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-line p-5">
+              <div className="flex items-center gap-2 text-ink-muted">
+                <ListFilter size={15} />
+                <p className="font-display text-sm font-bold text-ink">Nhật ký vận hành</p>
+              </div>
               <div className="flex gap-2">
                 <select
                   className="input w-auto"
@@ -197,7 +209,7 @@ export default function SyncJobDetailPage() {
             </div>
 
             {auditLoading ? (
-              <EmptyState title="Đang tải nhật ký…" />
+              <EmptyState tone="loading" title="Đang tải nhật ký…" />
             ) : auditError ? (
               <EmptyState tone="error" title="Không tải được nhật ký" description={auditError} />
             ) : filteredEntries.length === 0 ? (
@@ -219,26 +231,26 @@ export default function SyncJobDetailPage() {
                     </thead>
                     <tbody>
                       {filteredEntries.map((entry) => (
-                        <tr key={entry.id} className="hover:bg-paper">
-                          <td className="td whitespace-nowrap text-ink-soft/70">
+                        <tr key={entry.id} className="transition-colors hover:bg-surface-muted">
+                          <td className="td whitespace-nowrap text-ink-muted">
                             {formatDateTime(entry.created_at)}
                           </td>
-                          <td className="td font-mono text-[12px] text-ink-soft/80">
+                          <td className="td font-mono text-[12px] text-ink-muted">
                             {entry.action}
                           </td>
                           <td className="td">
                             <StatusBadge status={entry.status} />
                           </td>
-                          <td className="td text-ink-soft/70">
+                          <td className="td text-ink-muted">
                             {entry.http_status ?? "—"}
                           </td>
-                          <td className="td max-w-xs truncate text-ink-soft/70">
+                          <td className="td max-w-xs truncate text-ink-muted">
                             {entry.document_id ?? entry.request_url ?? "—"}
                           </td>
-                          <td className="td text-ink-soft/70">
+                          <td className="td text-ink-muted">
                             {formatDuration(entry.duration_ms)}
                           </td>
-                          <td className="td max-w-xs truncate text-ink-soft/70">
+                          <td className="td max-w-xs truncate text-ink-muted">
                             {entry.error_detail ?? entry.message ?? "—"}
                           </td>
                         </tr>
@@ -265,13 +277,13 @@ function ProgressBar({ fetched, target }: { fetched: number; target: number }) {
   const pct = target > 0 ? Math.min(100, Math.round((fetched / target) * 100)) : 0;
   return (
     <div>
-      <div className="mb-1.5 flex justify-between text-[12px] text-ink-soft/60">
+      <div className="mb-1.5 flex justify-between text-[12px] text-ink-muted">
         <span>Tiến độ thu thập</span>
-        <span>{pct}%</span>
+        <span className="font-semibold text-ink">{pct}%</span>
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-paper-line">
+      <div className="h-2.5 w-full overflow-hidden rounded-full bg-surface-muted">
         <div
-          className="h-full rounded-full bg-signal transition-all"
+          className="h-full rounded-full bg-brand-gradient transition-all duration-500"
           style={{ width: `${pct}%` }}
         />
       </div>

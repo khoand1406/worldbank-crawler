@@ -1,5 +1,6 @@
-import { redirect } from "next/navigation";
+import Overview from "./Overview";
+
 
 export default function Home() {
-  redirect("/documents");
+  return <Overview />;
 }

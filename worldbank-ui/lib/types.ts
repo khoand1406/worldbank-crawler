@@ -1,4 +1,4 @@
-export type SourceType = "A" | "B";
+export type SourceType = "PROJECT_DOCUMENTS" | "PUBLICATIONS_RESEARCH";
 
 export type SyncJobStatus =
   | "PENDING"
@@ -63,6 +63,24 @@ export interface SyncJobParams {
   docty_exact?: string;
   lang_exact?: string;
 }
+export interface SyncJobRaw {
+  ID: number;
+  SourceType: SourceType;
+  Params: SyncJobParams;
+  Status: SyncJobStatus;
+  TargetLimit: number;
+  TotalAvailable: number | null;
+  Fetched: number;
+  Inserted: number;
+  Updated: number;
+  FailedCount: number;
+  CurrentOffset: number;
+  StartedAt: string | null;
+  FinishedAt: string | null;
+  Error: string | null;
+  CreatedAt: string;
+  UpdatedAt: string;
+}
 
 export interface SyncJob {
   id: string;
@@ -75,16 +93,25 @@ export interface SyncJob {
   inserted: number;
   updated: number;
   failed_count: number;
+  current_offset: number;
   started_at: string | null;
   finished_at: string | null;
   error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SyncJobListRawResponse {
+  items: SyncJobRaw[];
+  limit: number;
+  offset: number;
 }
 
 export interface SyncJobListResponse {
   data: SyncJob[];
   total: number;
-  page: number;
-  page_size: number;
+  limit: number;
+  offset: number;
 }
 
 export interface CreateSyncJobPayload {

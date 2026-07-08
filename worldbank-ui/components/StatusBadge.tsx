@@ -1,11 +1,16 @@
-const STYLES: Record<string, string> = {
-  PENDING: "bg-status-pending/10 text-status-pending border-status-pending/30",
-  RUNNING: "bg-status-running/10 text-status-running border-status-running/30",
-  COMPLETED: "bg-status-completed/10 text-status-completed border-status-completed/30",
-  FAILED: "bg-status-failed/10 text-status-failed border-status-failed/30",
-  CANCELLED: "bg-status-cancelled/10 text-status-cancelled border-status-cancelled/30",
-  SUCCESS: "bg-status-completed/10 text-status-completed border-status-completed/30",
-  ERROR: "bg-status-failed/10 text-status-failed border-status-failed/30",
+import { CheckCircle2, CircleDashed, Loader2, XCircle, Ban, type LucideIcon } from "lucide-react";
+
+const CONFIG: Record<
+  string,
+  { bg: string; text: string; icon: LucideIcon }
+> = {
+  PENDING: { bg: "bg-status-pendingSoft", text: "text-status-pending", icon: CircleDashed },
+  RUNNING: { bg: "bg-status-runningSoft", text: "text-status-running", icon: Loader2 },
+  COMPLETED: { bg: "bg-status-completedSoft", text: "text-status-completed", icon: CheckCircle2 },
+  FAILED: { bg: "bg-status-failedSoft", text: "text-status-failed", icon: XCircle },
+  CANCELLED: { bg: "bg-status-cancelledSoft", text: "text-status-cancelled", icon: Ban },
+  SUCCESS: { bg: "bg-status-completedSoft", text: "text-status-completed", icon: CheckCircle2 },
+  ERROR: { bg: "bg-status-failedSoft", text: "text-status-failed", icon: XCircle },
 };
 
 const LABELS: Record<string, string> = {
@@ -19,13 +24,14 @@ const LABELS: Record<string, string> = {
 };
 
 export default function StatusBadge({ status }: { status: string }) {
-  const style = STYLES[status] ?? "bg-ink-soft/10 text-ink-soft border-ink-soft/30";
+  const cfg = CONFIG[status] ?? { bg: "bg-ink-muted/10", text: "text-ink-muted", icon: CircleDashed };
   const label = LABELS[status] ?? status;
+  const Icon = cfg.icon;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${style}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${cfg.bg} ${cfg.text}`}
     >
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      <Icon size={12} className={status === "RUNNING" ? "animate-spin" : ""} />
       {label}
     </span>
   );

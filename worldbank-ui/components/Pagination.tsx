@@ -1,3 +1,5 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
 interface PaginationProps {
   page: number;
   pageSize: number;
@@ -16,30 +18,32 @@ export default function Pagination({
   const to = Math.min(total, page * pageSize);
 
   return (
-    <div className="flex items-center justify-between border-t border-paper-line px-4 py-3">
-      <p className="text-[13px] text-ink-soft/70">
-        Hiển thị <span className="font-medium text-ink">{from}–{to}</span> trên{" "}
-        <span className="font-medium text-ink">{total}</span> bản ghi
+    <div className="flex items-center justify-between border-t border-surface-line px-5 py-3.5">
+      <p className="text-[13px] text-ink-muted">
+        Hiển thị <span className="font-semibold text-ink">{from}–{to}</span> trên{" "}
+        <span className="font-semibold text-ink">{total}</span> bản ghi
       </p>
       <div className="flex items-center gap-2">
         <button
           type="button"
-          className="btn-secondary px-3 py-1.5 text-[13px]"
+          className="btn-secondary h-8 w-8 !p-0"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
+          aria-label="Trang trước"
         >
-          Trước
+          <ChevronLeft size={16} />
         </button>
-        <span className="text-[13px] text-ink-soft/70">
-          Trang {page}/{totalPages}
+        <span className="text-[13px] font-medium text-ink-muted">
+          {page}/{totalPages}
         </span>
         <button
           type="button"
-          className="btn-secondary px-3 py-1.5 text-[13px]"
+          className="btn-secondary h-8 w-8 !p-0"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
+          aria-label="Trang sau"
         >
-          Sau
+          <ChevronRight size={16} />
         </button>
       </div>
     </div>

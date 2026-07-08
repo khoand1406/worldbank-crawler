@@ -6,10 +6,10 @@ import { api, ApiError } from "@/lib/api";
 import type { SyncJob } from "@/lib/types";
 import { formatDateTime, formatNumber, sourceTypeLabel } from "@/lib/format";
 import CreateSyncJobForm from "@/components/CreateSyncJobForm";
+import StatusBadge from "@/components/StatusBadge";
 import StampId from "@/components/StampId";
 import Pagination from "@/components/Pagination";
 import EmptyState from "@/components/EmptyState";
-import StatusBadge from "@/components/StatusBadge";
 
 const PAGE_SIZE = 20;
 
@@ -27,7 +27,7 @@ export default function SyncJobsExplorer() {
       .listSyncJobs(page, PAGE_SIZE)
       .then((res) => {
         setJobs(res.data);
-        setTotal(res.total);
+        setTotal(res.data.length);
       })
       .catch((err: unknown) => {
         setJobs([]);
@@ -54,7 +54,7 @@ export default function SyncJobsExplorer() {
 
       <div className="card overflow-hidden">
         {loading ? (
-          <EmptyState title="Đang tải danh sách lượt đồng bộ…" />
+          <EmptyState tone="loading" title="Đang tải danh sách lượt đồng bộ…" />
         ) : error ? (
           <EmptyState tone="error" title="Không tải được dữ liệu" description={error} />
         ) : jobs.length === 0 ? (
@@ -78,28 +78,28 @@ export default function SyncJobsExplorer() {
                 </thead>
                 <tbody>
                   {jobs.map((job) => (
-                    <tr key={job.id} className="hover:bg-paper">
+                    <tr key={job.id} className="transition-colors hover:bg-surface-muted">
                       <td className="td">
                         <Link href={`/sync-jobs/${encodeURIComponent(job.id)}`}>
                           <StampId value={job.id} />
                         </Link>
                       </td>
-                      <td className="td text-ink-soft/80">
+                      <td className="td text-ink-muted">
                         {sourceTypeLabel(job.source_type)}
                       </td>
                       <td className="td">
                         <StatusBadge status={job.status} />
                       </td>
-                      <td className="td text-ink-soft/80">
+                      <td className="td text-ink-muted">
                         {formatNumber(job.fetched)} / {formatNumber(job.target_limit)}
                       </td>
-                      <td className="td text-ink-soft/80">
+                      <td className="td text-ink-muted">
                         {formatNumber(job.inserted)} / {formatNumber(job.updated)} /{" "}
-                        <span className={job.failed_count > 0 ? "text-status-failed" : ""}>
+                        <span className={job.failed_count > 0 ? "font-medium text-status-failed" : ""}>
                           {formatNumber(job.failed_count)}
                         </span>
                       </td>
-                      <td className="td text-ink-soft/80">
+                      <td className="td text-ink-muted">
                         {formatDateTime(job.started_at)}
                       </td>
                     </tr>

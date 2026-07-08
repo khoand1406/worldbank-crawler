@@ -1,73 +1,99 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
+  --color-canvas: #f3f5fa;
 
-  --color-ink: #18211d;
-  --color-ink-soft: #5f6f66;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f7f8fc;
+  --color-surface-line: #e3e7f0;
 
-  --color-paper: #f5f6f4;
-  --color-paper-raised: #ffffff;
-  --color-paper-line: #d9ded8;
+  --color-ink: #151827;
+  --color-ink-muted: #6f768a;
 
-  --color-signal: #20548c;
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #dfe5ff;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
 
-  --color-stamp: #8c2f20;
-  --color-stamp-soft: #fff1ec;
+  --color-accent: #06b6d4;
+  --color-accent-soft: #cffafe;
 
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06),
-    0 1px 3px rgba(15, 23, 42, 0.08);
+  --color-status-running: #2563eb;
+  --color-status-running-soft: #dbeafe;
+  --color-status-failed: #dc2626;
+  --color-status-failed-soft: #fee2e2;
+
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+
+  --shadow-soft: 0 8px 24px rgba(15, 23, 42, 0.06);
+  --shadow-lift: 0 12px 30px rgba(15, 23, 42, 0.12);
+  --shadow-glow: 0 0 24px rgba(99, 102, 241, 0.35);
 
   --tracking-eyebrow: 0.14em;
 }
 
 html,
 body {
-  background-color: #f5f6f4;
+  background-color: #f3f5fa;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #cfd6d1 transparent;
+  scrollbar-color: #c7cce0 transparent;
 }
 
 :focus-visible {
-  outline: 2px solid #20548c;
+  outline: 2px solid #5b5fef;
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: 4px;
+}
+
+@utility bg-brand-gradient {
+  background-image: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+}
+
+@utility bg-sidebar-gradient {
+  background-image: linear-gradient(180deg, #111827 0%, #1e1b4b 100%);
 }
 
 @layer components {
   .eyebrow {
-    @apply text-[11px] font-semibold uppercase tracking-eyebrow text-ink-soft/60;
+    @apply text-[11px] font-semibold uppercase tracking-eyebrow text-ink-muted;
   }
 
   .stamp-id {
-    @apply inline-flex items-center gap-1 rounded-sm border border-stamp/30 bg-stamp-soft px-1.5 py-0.5 font-mono text-[11px] tracking-tight text-stamp;
+    @apply inline-flex items-center gap-1 rounded-full border border-brand-100 bg-brand-50 px-2.5 py-1 font-mono text-[11px] font-medium tracking-tight text-brand-700;
   }
 
   .card {
-    @apply rounded-md border border-paper-line bg-paper-raised shadow-card;
+    @apply rounded-2xl border border-surface-line bg-surface shadow-soft;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-sm bg-signal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-signal/90 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-lift transition-all duration-200 hover:brightness-110 hover:shadow-glow active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100 disabled:hover:shadow-lift;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-sm border border-paper-line bg-paper-raised px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-surface-line bg-surface px-4 py-2.5 text-sm font-medium text-ink transition-colors duration-200 hover:border-brand-400/40 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .input {
-    @apply w-full rounded-sm border border-paper-line bg-paper-raised px-3 py-2 text-sm text-ink placeholder:text-ink-soft/40 focus:border-signal;
+    @apply w-full rounded-xl border border-surface-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted/50 transition-colors duration-150 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/10;
   }
 
   .th {
-    @apply border-b border-paper-line px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-eyebrow text-ink-soft/60;
+    @apply border-b border-surface-line px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-eyebrow text-ink-muted;
   }
 
   .td {
-    @apply border-b border-paper-line px-4 py-3 text-sm text-ink;
+    @apply border-b border-surface-line px-4 py-3.5 text-sm text-ink;
+  }
+
+  .stat-card {
+    @apply rounded-2xl border border-surface-line bg-surface shadow-soft flex items-center gap-4 p-5 transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lift;
   }
 }
