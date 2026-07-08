@@ -175,16 +175,16 @@ func buildDocumentQuery(filter types.DocumentListQuery) (string, []any) {
 		addCondition("region ILIKE $%d", "%"+filter.Region+"%")
 	}
 
-	if filter.MajorDocType != "" {
-		addCondition("major_doc_type = $%d", filter.MajorDocType)
+	if filter.Language != "" {
+		addCondition("language ILIKE $%d", "%"+filter.Language+"%")
 	}
 
 	if filter.DocType != "" {
-		addCondition("doc_type = $%d", filter.DocType)
+		addCondition("doc_type ILIKE $%d", "%"+filter.DocType+"%")
 	}
 
-	if filter.Language != "" {
-		addCondition("language = $%d", filter.Language)
+	if filter.MajorDocType != "" {
+		addCondition("major_doc_type ILIKE $%d", "%"+filter.MajorDocType+"%")
 	}
 
 	if filter.TitleKeyword != "" {

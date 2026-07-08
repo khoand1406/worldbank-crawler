@@ -12,7 +12,12 @@ import EmptyState from "@/components/EmptyState";
 import StampId from "@/components/StampId";
 
 const PAGE_SIZE = 20;
-const EMPTY_FILTERS: DocumentFilters = { page: 1, page_size: PAGE_SIZE };
+const EMPTY_FILTERS: DocumentFilters = {
+  page: 1,
+  page_size: PAGE_SIZE,
+  sort_by: "doc_date",
+  sort_order: "desc",
+};
 
 export default function DocumentsExplorer() {
   const [filters, setFilters] = useState<DocumentFilters>(EMPTY_FILTERS);
@@ -40,7 +45,9 @@ export default function DocumentsExplorer() {
         setDocuments([]);
         setTotal(0);
         setError(
-          err instanceof ApiError ? err.message : "Đã xảy ra lỗi không xác định."
+          err instanceof ApiError
+            ? err.message
+            : "Đã xảy ra lỗi không xác định.",
         );
       })
       .finally(() => {
@@ -111,10 +118,14 @@ export default function DocumentsExplorer() {
                 </thead>
                 <tbody>
                   {documents.map((doc) => (
-                    <tr key={doc.id} className="group transition-colors hover:bg-surface-muted">
+                    <tr
+                      key={doc.id}
+                      className="group transition-colors hover:bg-surface-muted"
+                    >
                       <td className="td">
                         <StampId value={doc.id} />
                       </td>
+
                       <td className="td max-w-sm">
                         <Link
                           href={`/documents/${encodeURIComponent(doc.id)}`}
@@ -127,12 +138,23 @@ export default function DocumentsExplorer() {
                           />
                         </Link>
                       </td>
-                      <td className="td text-ink-muted">{doc.count ?? "—"}</td>
-                      <td className="td text-ink-muted">{doc.docty ?? "—"}</td>
+
                       <td className="td text-ink-muted">
-                        {formatDate(doc.docdt)}
+                        {doc.country ?? "—"}
                       </td>
-                      <td className="td text-ink-muted">{doc.lang ?? "—"}</td>
+
+                      <td className="td text-ink-muted">
+                        {doc.doc_type ?? "—"}
+                      </td>
+
+                      <td className="td text-ink-muted">
+                        {formatDate(doc.doc_date)}
+                      </td>
+
+                      <td className="td text-ink-muted">
+                        {doc.language ?? "—"}
+                      </td>
+
                       <td className="td">
                         <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent">
                           {doc.source_type}

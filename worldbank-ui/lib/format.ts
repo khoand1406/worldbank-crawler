@@ -35,5 +35,5 @@ export function formatDuration(ms: number | null | undefined): string {
 }
 
 export function sourceTypeLabel(sourceType: string): string {
-  return sourceType === "A" ? "Nhom A — Project Documents" : "Nhom B — Publications & Research";
+  return sourceType === "PROJECT_DOCUMENTS" ? "Nhom A — Project Documents" : "Nhom B — Publications & Research";
 }

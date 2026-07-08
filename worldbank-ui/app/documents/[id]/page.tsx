@@ -3,14 +3,26 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, ExternalLink, FileText, Link2, type LucideIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  ExternalLink,
+  FileText,
+  Link2,
+  type LucideIcon,
+} from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import type { WbDocument } from "@/lib/types";
 import { formatDate, sourceTypeLabel } from "@/lib/format";
 import EmptyState from "@/components/EmptyState";
 import StampId from "@/components/StampId";
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
       <p className="eyebrow mb-1">{label}</p>
@@ -38,7 +50,9 @@ export default function DocumentDetailPage() {
       .catch((err: unknown) => {
         if (cancelled) return;
         setError(
-          err instanceof ApiError ? err.message : "Đã xảy ra lỗi không xác định."
+          err instanceof ApiError
+            ? err.message
+            : "Đã xảy ra lỗi không xác định.",
         );
       })
       .finally(() => {
@@ -82,22 +96,39 @@ export default function DocumentDetailPage() {
                   {sourceTypeLabel(doc.source_type)}
                 </span>
               </div>
-              <h1 className="font-display text-lg font-bold text-ink">{doc.display_title}</h1>
+              <h1 className="font-display text-lg font-bold text-ink">
+                {doc.display_title}
+              </h1>
             </div>
 
             <div className="p-6">
               <div className="grid grid-cols-2 gap-5 md:grid-cols-3">
-                <Field label="Ngày tài liệu">{formatDate(doc.docdt)}</Field>
-                <Field label="Loại tài liệu">{doc.docty ?? "—"}</Field>
-                <Field label="Nhóm tài liệu lớn">{doc.majdocty ?? "—"}</Field>
-                <Field label="Quốc gia">{doc.count ?? "—"}</Field>
-                <Field label="Vùng (region)">{doc.admreg ?? "—"}</Field>
-                <Field label="Dự án">{doc.projn ?? "—"}</Field>
-                <Field label="Ngôn ngữ">{doc.lang ?? "—"}</Field>
-                <Field label="Công cụ cho vay">{doc.lndinstr ?? "—"}</Field>
-                <Field label="Dòng sản phẩm">{doc.prdln ?? "—"}</Field>
-                <Field label="Ngày công bố">{formatDate(doc.disclosure_date)}</Field>
-                <Field label="Trạng thái công bố">{doc.disclstat ?? "—"}</Field>
+                <Field label="Ngày tài liệu">{formatDate(doc.doc_date)}</Field>
+                <Field label="Loại tài liệu">{doc.doc_type ?? "—"}</Field>
+                <Field label="Nhóm tài liệu lớn">
+                  {doc.major_doc_type ?? "—"}
+                </Field>
+
+                <Field label="Quốc gia">{doc.country ?? "—"}</Field>
+                <Field label="Vùng (region)">{doc.region ?? "—"}</Field>
+                <Field label="Dự án">{doc.project_name ?? "—"}</Field>
+
+                <Field label="Mã dự án">{doc.project_id ?? "—"}</Field>
+                <Field label="Ngôn ngữ">{doc.language ?? "—"}</Field>
+                <Field label="Công cụ cho vay">
+                  {doc.lending_instrument || "—"}
+                </Field>
+
+                <Field label="Dòng sản phẩm">{doc.product_line ?? "—"}</Field>
+                <Field label="Ngày công bố">
+                  {formatDate(doc.disclosure_date ?? null)}
+                </Field>
+                <Field label="Trạng thái công bố">
+                  {doc.disclosure_status ?? "—"}
+                </Field>
+
+                <Field label="Phân quyền">{doc.security_class ?? "—"}</Field>
+                <Field label="Phiên bản">{doc.version_type ?? "—"}</Field>
                 <Field label="Số trang">{doc.no_of_pages ?? "—"}</Field>
               </div>
 
@@ -125,13 +156,21 @@ export default function DocumentDetailPage() {
               <p className="eyebrow text-ink-muted">Liên kết tài liệu gốc</p>
             </div>
             <div className="flex flex-col gap-1">
-              <LinkRow icon={ExternalLink} label="Trang đích (url)" href={doc.url} />
-              <LinkRow icon={FileText} label="Tệp PDF (pdfurl)" href={doc.pdfurl} />
-              <LinkRow icon={FileText} label="Bản text (txturl)" href={doc.txturl} />
+              <LinkRow
+                icon={ExternalLink}
+                label="Trang đích"
+                href={doc.record_url}
+              />
+              <LinkRow icon={FileText} label="Tệp PDF" href={doc.pdf_url} />
+              <LinkRow
+                icon={FileText}
+                label="Bản text"
+                href={doc.txt_url ?? null}
+              />
             </div>
             <p className="mt-4 text-[12px] text-ink-muted/70">
-              Hệ thống chỉ lưu đường dẫn — không tải và lưu trữ tệp PDF gốc (ngoài
-              phạm vi dự án).
+              Hệ thống chỉ lưu đường dẫn — không tải và lưu trữ tệp PDF gốc
+              (ngoài phạm vi dự án).
             </p>
           </div>
         </div>
