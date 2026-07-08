@@ -12,6 +12,7 @@ import (
 	"worldbank-crawler/internal/mapper"
 	"worldbank-crawler/internal/model"
 	"worldbank-crawler/internal/repository"
+	"worldbank-crawler/internal/sse"
 	types "worldbank-crawler/internal/type"
 
 	"github.com/jackc/pgx/v5"
@@ -35,6 +36,8 @@ type SyncService struct {
 
 	maxRetries int
 	retryDelay time.Duration
+
+	eventBroker *sse.Broker
 }
 
 type SyncServiceConfig struct {
@@ -46,7 +49,7 @@ type SyncServiceConfig struct {
 	retryDelay     time.Duration
 }
 
-func NewSyncService(db *pgxpool.Pool, client *client.Client, documentRepo *repository.WorldBankDocumentRepository, auditLogRepo *repository.AuditLogRepository, syncJobRepo *repository.SyncJobRepository, syncSourceRepo *repository.SyncSourceRepository, cfg SyncServiceConfig) *SyncService {
+func NewSyncService(db *pgxpool.Pool, client *client.Client, documentRepo *repository.WorldBankDocumentRepository, auditLogRepo *repository.AuditLogRepository, syncJobRepo *repository.SyncJobRepository, syncSourceRepo *repository.SyncSourceRepository, cfg SyncServiceConfig, eventBroker *sse.Broker) *SyncService {
 	if cfg.RowsPerPage <= 0 {
 		cfg.RowsPerPage = 100
 	}
@@ -85,6 +88,7 @@ func NewSyncService(db *pgxpool.Pool, client *client.Client, documentRepo *repos
 		jobTimeout:     cfg.SyncJobTimeout,
 		maxRetries:     cfg.maxRetries,
 		retryDelay:     cfg.retryDelay,
+		eventBroker:    eventBroker,
 	}
 
 }
@@ -346,17 +350,16 @@ func (s *SyncService) RunJob(ctx context.Context, jobId int64) error {
 	if err := s.syncLogRepo.MarkRunning(ctx, job.ID); err != nil {
 		return err
 	}
+	s.emitJobUpdated(job.ID, model.SyncJobStatusRunning, "sync job started")
 
 	params, err := decodeSyncJobParams(job.Params)
 	if err != nil {
-		_ = s.syncLogRepo.MarkFailed(ctx, job.ID, err.Error())
-		return err
+		s.failJob(ctx, job.ID, err)
 	}
 
 	source, err := s.syncSourceRepo.FindBySourceType(ctx, job.SourceType)
 	if err != nil {
-		_ = s.syncLogRepo.MarkFailed(ctx, job.ID, err.Error())
-		return err
+		s.failJob(ctx, job.ID, err)
 	}
 
 	offset := job.CurrentOffset
@@ -401,19 +404,15 @@ func (s *SyncService) RunJob(ctx context.Context, jobId int64) error {
 		_ = requestURL
 
 		if fetchErr != nil {
-			_ = s.syncLogRepo.MarkFailed(ctx, job.ID, fetchErr.Error())
-			return fetchErr
+			s.failJob(ctx, job.ID, fetchErr)
 		}
 
 		if resp == nil {
-			err := fmt.Errorf("worldbank response is nil")
-			_ = s.syncLogRepo.MarkFailed(ctx, job.ID, err.Error())
-			return err
+			return s.failJob(ctx, job.ID, fmt.Errorf("worldbank response is nil"))
 		}
 
 		if err := s.syncLogRepo.SetTotalAvailable(ctx, job.ID, resp.Total); err != nil {
-			_ = s.syncLogRepo.MarkFailed(ctx, job.ID, err.Error())
-			return err
+			s.failJob(ctx, job.ID, err)
 		}
 
 		if len(rawDocs) == 0 {
@@ -430,11 +429,14 @@ func (s *SyncService) RunJob(ctx context.Context, jobId int64) error {
 		)
 		if processErr != nil {
 			_ = s.syncLogRepo.MarkFailed(ctx, job.ID, processErr.Error())
+			s.emitJobUpdated(job.ID, model.SyncJobStatusFailed, processErr.Error())
 			return processErr
 		}
 
 		fetched += len(rawDocs)
 		offset = offsetAfterPage
+
+		s.emitJobProgress(job.ID, offset, fetched, insertedCount, updatedCount, failedCount, resp.Total)
 
 		log.Printf(
 			"sync job page completed: job_id=%d offset=%d rows=%d fetched=%d inserted=%d updated=%d failed=%d api_total=%d",
@@ -460,13 +462,70 @@ func (s *SyncService) RunJob(ctx context.Context, jobId int64) error {
 		select {
 		case <-ctx.Done():
 			_ = s.syncLogRepo.MarkFailed(ctx, job.ID, ctx.Err().Error())
+			s.emitJobUpdated(job.ID, model.SyncJobStatusFailed, ctx.Err().Error())
 			return ctx.Err()
 
 		case <-time.After(s.requestDelay):
 		}
 	}
 
-	return s.syncLogRepo.MarkCompleted(ctx, job.ID)
+	if err := s.syncLogRepo.MarkCancelled(ctx, job.ID); err != nil {
+		return err
+	}
+	s.emitJobUpdated(job.ID, model.SyncJobStatusCompleted, "Sync job completed")
+	return nil
+}
+
+func (s *SyncService) emitJobUpdated(jobId int64, status model.SyncJobStatus, messages string) {
+	if s.eventBroker == nil {
+		return
+	}
+	s.eventBroker.Publish(sse.Event{
+		Name: "sync_job_updated",
+		Data: map[string]any{
+			"id":      jobId,
+			"status":  status,
+			"message": messages,
+		},
+	})
+}
+
+func (s *SyncService) emitJobProgress(
+	jobID int64,
+	offset int,
+	fetched int,
+	inserted int,
+	updated int,
+	failed int,
+	totalAvailable int,
+) {
+	if s.eventBroker == nil {
+		return
+	}
+
+	s.eventBroker.Publish(sse.Event{
+		Name: "sync_job_progress",
+		Data: map[string]any{
+			"id":              jobID,
+			"status":          model.SyncJobStatusRunning,
+			"offset":          offset,
+			"fetched":         fetched,
+			"inserted":        inserted,
+			"updated":         updated,
+			"failed":          failed,
+			"total_available": totalAvailable,
+		},
+	})
+}
+func (s *SyncService) failJob(ctx context.Context, jobID int64, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	_ = s.syncLogRepo.MarkFailed(ctx, jobID, err.Error())
+	s.emitJobUpdated(jobID, model.SyncJobStatusFailed, err.Error())
+
+	return err
 }
 
 func decodeSyncJobParams(raw json.RawMessage) (model.SyncJobParams, error) {

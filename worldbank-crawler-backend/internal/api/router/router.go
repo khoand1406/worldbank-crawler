@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"worldbank-crawler/internal/api"
 	"worldbank-crawler/internal/api/handler"
+	"worldbank-crawler/internal/sse"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -13,6 +14,7 @@ import (
 type RouteDependency struct {
 	SyncJobHandler  *handler.SyncJobHandler
 	DocumentHandler *handler.DocumentHandler
+	EventBroker     *sse.Broker
 }
 
 func NeuRouter(deps RouteDependency) http.Handler {
@@ -52,7 +54,10 @@ func NeuRouter(deps RouteDependency) http.Handler {
 		r.Route("/sync-jobs", func(r chi.Router) {
 			r.Post("/", deps.SyncJobHandler.CreateSyncJob)
 			r.Get("/", deps.SyncJobHandler.ListSyncJobs)
-			r.Route("/{id}", func(r chi.Router) {
+
+			r.Get("/events", deps.EventBroker.ServeHTTP)
+
+			r.Route("/{id:[0-9]+}", func(r chi.Router) {
 				r.Get("/", deps.SyncJobHandler.GetSyncJob)
 				r.Post("/run", deps.SyncJobHandler.RunSyncJob)
 				r.Get("/progress", deps.SyncJobHandler.GetSyncJobProgress)

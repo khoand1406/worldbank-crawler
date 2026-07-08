@@ -17,6 +17,7 @@ import (
 	"worldbank-crawler/internal/db"
 	"worldbank-crawler/internal/repository"
 	"worldbank-crawler/internal/service"
+	"worldbank-crawler/internal/sse"
 
 	"github.com/joho/godotenv"
 )
@@ -42,6 +43,8 @@ func main() {
 	auditLogRepo := repository.NewAuditLogRepository(database)
 	syncSourceRepo := repository.NewSyncSourceRepository(database)
 
+	sseEventBroker := sse.NewBroker()
+
 	syncService := service.NewSyncService(
 		database,
 		worldbankClient,
@@ -55,6 +58,7 @@ func main() {
 			MaxJobLimit:    appConfig.MaxJobLimit,
 			SyncJobTimeout: appConfig.SyncJobTimeout,
 		},
+		sseEventBroker,
 	)
 
 	syncjobHandler := handler.NewSyncJobHandler(syncService, syncJobRepo, auditLogRepo)
@@ -62,7 +66,9 @@ func main() {
 	router := router.NeuRouter(router.RouteDependency{
 		SyncJobHandler:  syncjobHandler,
 		DocumentHandler: documentHandler,
+		EventBroker:     sseEventBroker,
 	})
+
 	server := &http.Server{
 		Addr:         appConfig.ServerAddr,
 		Handler:      router,
