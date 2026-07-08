@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
 type RouteDependency struct {
@@ -18,6 +19,27 @@ func NeuRouter(deps RouteDependency) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{
+			"http://localhost:3000",
+			"http://127.0.0.1:3000",
+		},
+		AllowedMethods: []string{
+			"GET",
+			"POST",
+			"PUT",
+			"PATCH",
+			"DELETE",
+			"OPTIONS",
+		},
+		AllowedHeaders: []string{
+			"Accept",
+			"Authorization",
+			"Content-Type",
+		},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 

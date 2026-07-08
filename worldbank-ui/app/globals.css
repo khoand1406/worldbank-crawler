@@ -1,26 +1,73 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
+
+  --color-ink: #18211d;
+  --color-ink-soft: #5f6f66;
+
+  --color-paper: #f5f6f4;
+  --color-paper-raised: #ffffff;
+  --color-paper-line: #d9ded8;
+
+  --color-signal: #20548c;
+
+  --color-stamp: #8c2f20;
+  --color-stamp-soft: #fff1ec;
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06),
+    0 1px 3px rgba(15, 23, 42, 0.08);
+
+  --tracking-eyebrow: 0.14em;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #f5f6f4;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cfd6d1 transparent;
+}
+
+:focus-visible {
+  outline: 2px solid #20548c;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@layer components {
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-eyebrow text-ink-soft/60;
+  }
+
+  .stamp-id {
+    @apply inline-flex items-center gap-1 rounded-sm border border-stamp/30 bg-stamp-soft px-1.5 py-0.5 font-mono text-[11px] tracking-tight text-stamp;
+  }
+
+  .card {
+    @apply rounded-md border border-paper-line bg-paper-raised shadow-card;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-sm bg-signal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-signal/90 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-sm border border-paper-line bg-paper-raised px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .input {
+    @apply w-full rounded-sm border border-paper-line bg-paper-raised px-3 py-2 text-sm text-ink placeholder:text-ink-soft/40 focus:border-signal;
+  }
+
+  .th {
+    @apply border-b border-paper-line px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-eyebrow text-ink-soft/60;
+  }
+
+  .td {
+    @apply border-b border-paper-line px-4 py-3 text-sm text-ink;
+  }
 }
