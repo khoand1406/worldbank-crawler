@@ -192,6 +192,10 @@ export interface SyncJob {
   updated_at: string;
 }
 
+export interface SyncJobMinialResponse{
+  
+}
+
 export interface SyncJobListRawResponse {
   items: SyncJobRaw[];
   limit: number;

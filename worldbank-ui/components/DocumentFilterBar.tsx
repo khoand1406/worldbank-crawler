@@ -19,7 +19,40 @@ export default function DocumentFilterBar({
   function set<K extends keyof DocumentFilters>(key: K, v: DocumentFilters[K]) {
     onChange({ ...value, [key]: v });
   }
+  const SOURCE_TYPE_TO_MAJOR_DOC_TYPE = {
+    PROJECT_DOCUMENTS: "Project Documents",
+    PUBLICATIONS_RESEARCH: "Publications & Research",
+  } as const;
 
+  const MAJOR_DOC_TYPE_TO_SOURCE_TYPE = {
+    "Project Documents": "PROJECT_DOCUMENTS",
+    "Publications & Research": "PUBLICATIONS_RESEARCH",
+  } as const;
+
+  function setSourceType(sourceType: DocumentFilters["source_type"]) {
+    onChange({
+      ...value,
+      source_type: sourceType,
+      major_doc_type: sourceType
+        ? SOURCE_TYPE_TO_MAJOR_DOC_TYPE[sourceType]
+        : "",
+    });
+  }
+
+  function setMajorDocType(majorDocType: DocumentFilters["major_doc_type"]) {
+    const sourceType =
+      majorDocType && majorDocType in MAJOR_DOC_TYPE_TO_SOURCE_TYPE
+        ? MAJOR_DOC_TYPE_TO_SOURCE_TYPE[
+            majorDocType as keyof typeof MAJOR_DOC_TYPE_TO_SOURCE_TYPE
+          ]
+        : "";
+
+    onChange({
+      ...value,
+      major_doc_type: majorDocType,
+      source_type: sourceType,
+    });
+  }
   return (
     <form
       className="card p-5"
@@ -56,12 +89,14 @@ export default function DocumentFilterBar({
             className="input"
             value={value.source_type ?? ""}
             onChange={(e) =>
-              set("source_type", e.target.value as DocumentFilters["source_type"])
+              setSourceType(e.target.value as DocumentFilters["source_type"])
             }
           >
             <option value="">Tất cả</option>
             <option value="PROJECT_DOCUMENTS">Project Documents</option>
-            <option value="PUBLICATIONS_RESEARCH">Publications & Research</option>
+            <option value="PUBLICATIONS_RESEARCH">
+              Publications & Research
+            </option>
           </select>
         </div>
 
@@ -90,11 +125,13 @@ export default function DocumentFilterBar({
           <select
             className="input"
             value={value.major_doc_type ?? ""}
-            onChange={(e) => set("major_doc_type", e.target.value)}
+            onChange={(e) => setMajorDocType(e.target.value)}
           >
             <option value="">Tất cả</option>
             <option value="Project Documents">Project Documents</option>
-            <option value="Publications & Research">Publications & Research</option>
+            <option value="Publications & Research">
+              Publications & Research
+            </option>
           </select>
         </div>
 

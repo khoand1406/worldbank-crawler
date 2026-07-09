@@ -8,6 +8,7 @@ import {
   SyncJob,
   SyncJobListRawResponse,
   SyncJobListResponse,
+  SyncJobMinialResponse,
   SyncJobRaw,
   WbDocument,
   WbDocumentDetailRaw,
@@ -134,6 +135,18 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     });
+  },
+
+  runSyncJob(id: number):Promise<SyncJobMinialResponse>{
+    return request<SyncJobMinialResponse>(`/api/sync-jobs/${encodeURIComponent(id)}/run`, {
+      method: "POST",
+    });
+  },
+
+  cancelSyncJob(id: number):Promise<SyncJobMinialResponse>{
+    return request<SyncJobMinialResponse>(`/api/sync-jobs/${encodeURIComponent(id)}/cancel`,{
+      method: "POST",
+    })
   },
 
   async getSyncJobAudit(

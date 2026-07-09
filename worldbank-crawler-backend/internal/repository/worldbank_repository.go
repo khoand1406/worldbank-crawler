@@ -56,22 +56,22 @@ func (r *WorldBankDocumentRepository) ListDocuments(
 
 	query := fmt.Sprintf(
 		`SELECT
-			id,
-			source_type,
-			display_title,
-			doc_date,
-			doc_type,
-			major_doc_type,
-			country,
-			country_key,
-			region,
-			language,
-			pdf_url,
-			record_url
-		FROM documents
-		%s
-		ORDER BY %s %s
-		LIMIT $%d OFFSET $%d`,
+		id,
+		source_type,
+		COALESCE(display_title, '') AS display_title,
+		doc_date,
+		COALESCE(doc_type, '') AS doc_type,
+		COALESCE(major_doc_type, '') AS major_doc_type,
+		COALESCE(country, '') AS country,
+		COALESCE(country_key, '') AS country_key,
+		COALESCE(region, '') AS region,
+		COALESCE(language, '') AS language,
+		COALESCE(pdf_url, '') AS pdf_url,
+		COALESCE(record_url, '') AS record_url
+	FROM documents
+	%s
+	ORDER BY %s %s
+	LIMIT $%d OFFSET $%d`,
 		whereSQL,
 		sortBy,
 		sortOrder,

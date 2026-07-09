@@ -7,8 +7,13 @@
   --color-surface-muted: #f7f8fc;
   --color-surface-line: #e3e7f0;
 
+  --color-paper: #f3f5fa;
+  --color-paper-raised: #ffffff;
+  --color-paper-line: #e3e7f0;
+
   --color-ink: #151827;
   --color-ink-muted: #6f768a;
+  --color-ink-soft: #6f768a;
 
   --color-brand-50: #eef2ff;
   --color-brand-100: #dfe5ff;
@@ -17,21 +22,39 @@
   --color-brand-600: #4f46e5;
   --color-brand-700: #4338ca;
 
+  --color-primary: #4f46e5;
+  --color-signal: #4f46e5;
+  --color-signal-soft: #eef2ff;
+
   --color-accent: #06b6d4;
   --color-accent-soft: #cffafe;
 
-  --color-status-running: #2563eb;
-  --color-status-running-soft: #dbeafe;
+  --color-stamp: #4338ca;
+  --color-stamp-soft: #eef2ff;
+
+  --color-status-running: #175cd3;
+  --color-status-running-soft: #d1e9ff;
+
   --color-status-failed: #dc2626;
   --color-status-failed-soft: #fee2e2;
 
-  --font-sans: var(--font-sans);
-  --font-display: var(--font-display);
-  --font-mono: var(--font-mono);
+  --color-status-success: #067647;
+  --color-status-success-soft: #dcfae6;
+
+  --color-status-pending: #475467;
+  --color-status-pending-soft: #f2f4f7;
+
+  --color-status-cancelled: #93370d;
+  --color-status-cancelled-soft: #ffead5;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
 
   --shadow-soft: 0 8px 24px rgba(15, 23, 42, 0.06);
   --shadow-lift: 0 12px 30px rgba(15, 23, 42, 0.12);
   --shadow-glow: 0 0 24px rgba(99, 102, 241, 0.35);
+  --shadow-card: 0 8px 24px rgba(15, 23, 42, 0.06);
 
   --tracking-eyebrow: 0.14em;
 }
@@ -94,6 +117,6 @@ body {
   }
 
   .stat-card {
-    @apply rounded-2xl border border-surface-line bg-surface shadow-soft flex items-center gap-4 p-5 transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lift;
+    @apply flex items-center gap-4 rounded-2xl border border-surface-line bg-surface p-5 shadow-soft transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lift;
   }
 }

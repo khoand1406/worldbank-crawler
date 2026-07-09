@@ -26,7 +26,7 @@ export default function SyncJobsExplorer() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const [actionJobId, setActionJobId] = useState<string | null>(null);
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
@@ -101,6 +101,50 @@ export default function SyncJobsExplorer() {
     [patchJobInList],
   );
 
+  const handleRunJob = useCallback(
+    async (jobId: number) => {
+      try {
+        setActionJobId(String(jobId));
+
+        await api.runSyncJob(jobId);
+
+        patchJobInList(String(jobId), {
+          status: "RUNNING",
+        } as Partial<SyncJob>);
+
+        toast.success(`Đã bắt đầu Job #${jobId}`);
+        load();
+      } catch (err: unknown) {
+        toast.error(
+          err instanceof ApiError ? err.message : "Không thể chạy job.",
+        );
+      } finally {
+        setActionJobId(null);
+      }
+    },
+    [patchJobInList, load],
+  );
+
+  const handleCancelJob = useCallback(
+    async (jobId: number) => {
+      try {
+        setActionJobId(String(jobId));
+
+        await api.cancelSyncJob(jobId);
+
+        toast.success(`Đã yêu cầu hủy Job #${jobId}`);
+        load();
+      } catch (err: unknown) {
+        toast.error(
+          err instanceof ApiError ? err.message : "Không thể hủy job.",
+        );
+      } finally {
+        setActionJobId(null);
+      }
+    },
+    [load],
+  );
+
   useSyncJobEvents({
     onJobUpdated: handleJobUpdated,
     onJobProgress: handleJobProgress,
@@ -141,6 +185,7 @@ export default function SyncJobsExplorer() {
                     <th className="th">Tiến độ</th>
                     <th className="th">Thêm mới / Cập nhật / Lỗi</th>
                     <th className="th">Bắt đầu</th>
+                    <th className="th">Hành Động</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -180,6 +225,29 @@ export default function SyncJobsExplorer() {
                       <td className="td text-ink-muted">
                         {formatDateTime(job.started_at)}
                       </td>
+                      <td className="td">
+                        {job.status === "PENDING" ? (
+                          <button
+                            type="button"
+                            disabled={actionJobId === job.id}
+                            onClick={() => handleRunJob(Number.parseInt(job.id))}
+                            className="rounded-sm bg-signal px-3 py-1.5 text-sm font-semibold text-black shadow-sm transition hover:bg-signal/90 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {actionJobId === job.id ? "Đang chạy…" : "Run"}
+                          </button>
+                        ) : job.status === "RUNNING" ? (
+                          <button
+                            type="button"
+                            disabled={actionJobId === job.id}
+                            onClick={() => handleCancelJob(Number.parseInt(job.id))}
+                            className="rounded-lg border border-status-failed px-3 py-1.5 text-sm font-medium text-status-failed transition hover:bg-status-failed/10 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {actionJobId === job.id ? "Đang hủy…" : "Cancel"}
+                          </button>
+                        ) : (
+                          <span className="text-sm text-ink-muted">—</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -194,8 +262,7 @@ export default function SyncJobsExplorer() {
           </>
         )}
       </div>
-      <Toaster position="bottom-right" duration={2000}  ></Toaster>
+      <Toaster position="bottom-right" duration={2000}></Toaster>
     </div>
   );
-  
 }
