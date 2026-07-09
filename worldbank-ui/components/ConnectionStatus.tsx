@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { AppConfig } from "@/config/app.config";
 
 type ConnState = "checking" | "online" | "offline";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+const API_BASE_URL = AppConfig.apiBaseUrl;
 const CHECK_INTERVAL_MS = 20000;
 
 export default function ConnectionStatus() {

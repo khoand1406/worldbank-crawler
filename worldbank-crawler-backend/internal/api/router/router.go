@@ -2,6 +2,7 @@ package router
 
 import (
 	"net/http"
+	"time"
 	"worldbank-crawler/internal/api"
 	"worldbank-crawler/internal/api/handler"
 	"worldbank-crawler/internal/sse"
@@ -52,21 +53,29 @@ func NeuRouter(deps RouteDependency) http.Handler {
 	})
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/sync-jobs", func(r chi.Router) {
-			r.Post("/", deps.SyncJobHandler.CreateSyncJob)
-			r.Get("/", deps.SyncJobHandler.ListSyncJobs)
-
 			r.Get("/events", deps.EventBroker.ServeHTTP)
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.Timeout(30 * time.Second))
+				r.Post("/", deps.SyncJobHandler.CreateSyncJob)
+				r.Get("/", deps.SyncJobHandler.ListSyncJobs)
+				r.Route("/{id:[0-9]+}", func(r chi.Router) {
+					r.Get("/", deps.SyncJobHandler.GetSyncJob)
+					r.Post("/run", deps.SyncJobHandler.RunSyncJob)
+					r.Get("/progress", deps.SyncJobHandler.GetSyncJobProgress)
+					r.Get("/audit", deps.SyncJobHandler.ListAuditLogs)
+				})
 
-			r.Route("/{id:[0-9]+}", func(r chi.Router) {
-				r.Get("/", deps.SyncJobHandler.GetSyncJob)
-				r.Post("/run", deps.SyncJobHandler.RunSyncJob)
-				r.Get("/progress", deps.SyncJobHandler.GetSyncJobProgress)
-				r.Get("/audit", deps.SyncJobHandler.ListAuditLogs)
 			})
 		})
 		r.Route("/documents", func(r chi.Router) {
-			r.Get("/", deps.DocumentHandler.ListDocuments)
-			r.Get("/{id}", deps.DocumentHandler.GetDocument)
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.Timeout(30 * time.Second))
+
+				r.Get("/", deps.DocumentHandler.ListDocuments)
+				r.Get("/{id}", deps.DocumentHandler.GetDocument)
+
+			})
+
 		})
 	})
 	return r

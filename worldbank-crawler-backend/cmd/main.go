@@ -73,7 +73,7 @@ func main() {
 		Addr:         appConfig.ServerAddr,
 		Handler:      router,
 		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 60 * time.Second,
+		WriteTimeout: 0,
 		IdleTimeout:  60 * time.Second,
 	}
 	go func() {

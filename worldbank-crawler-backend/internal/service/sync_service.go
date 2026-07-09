@@ -469,7 +469,7 @@ func (s *SyncService) RunJob(ctx context.Context, jobId int64) error {
 		}
 	}
 
-	if err := s.syncLogRepo.MarkCancelled(ctx, job.ID); err != nil {
+	if err := s.syncLogRepo.MarkCompleted(ctx, job.ID); err != nil {
 		return err
 	}
 	s.emitJobUpdated(job.ID, model.SyncJobStatusCompleted, "Sync job completed")

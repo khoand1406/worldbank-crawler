@@ -10,6 +10,13 @@ import StatusBadge from "@/components/StatusBadge";
 import StampId from "@/components/StampId";
 import Pagination from "@/components/Pagination";
 import EmptyState from "@/components/EmptyState";
+import {
+  useSyncJobEvents,
+  type SyncJobProgressEvent,
+  type SyncJobUpdatedEvent,
+} from "@/hooks/useSyncJobEvents";
+
+import { toast, Toaster } from "sonner";
 
 const PAGE_SIZE = 20;
 
@@ -23,6 +30,7 @@ export default function SyncJobsExplorer() {
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
+
     api
       .listSyncJobs(page, PAGE_SIZE)
       .then((res) => {
@@ -33,7 +41,9 @@ export default function SyncJobsExplorer() {
         setJobs([]);
         setTotal(0);
         setError(
-          err instanceof ApiError ? err.message : "Đã xảy ra lỗi không xác định."
+          err instanceof ApiError
+            ? err.message
+            : "Đã xảy ra lỗi không xác định.",
         );
       })
       .finally(() => setLoading(false));
@@ -42,6 +52,59 @@ export default function SyncJobsExplorer() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const patchJobInList = useCallback(
+    (jobId: string, patch: Partial<SyncJob>) => {
+      setJobs((currentJobs) =>
+        currentJobs.map((job) =>
+          job.id === jobId
+            ? {
+                ...job,
+                ...patch,
+              }
+            : job,
+        ),
+      );
+    },
+    [],
+  );
+
+  const handleJobUpdated = useCallback(
+    (event: SyncJobUpdatedEvent) => {
+      patchJobInList(String(event.id), {
+        status: event.status,
+      } as Partial<SyncJob>);
+
+      if (event.status === "COMPLETED") {
+        toast.success(`Job #${event.id} đã hoàn tất`);
+        load();
+      }
+
+      if (event.status === "FAILED") {
+        toast.error(event.message || `Job #${event.id} thất bại`);
+        load();
+      }
+    },
+    [patchJobInList, load],
+  );
+
+  const handleJobProgress = useCallback(
+    (event: SyncJobProgressEvent) => {
+      patchJobInList(String(event.id), {
+        status: event.status,
+        fetched: event.fetched,
+        inserted: event.inserted,
+        updated: event.updated,
+        failed_count: event.failed,
+      } as Partial<SyncJob>);
+    },
+    [patchJobInList],
+  );
+
+  useSyncJobEvents({
+    onJobUpdated: handleJobUpdated,
+    onJobProgress: handleJobProgress,
+  });
 
   return (
     <div className="space-y-5">
@@ -56,7 +119,11 @@ export default function SyncJobsExplorer() {
         {loading ? (
           <EmptyState tone="loading" title="Đang tải danh sách lượt đồng bộ…" />
         ) : error ? (
-          <EmptyState tone="error" title="Không tải được dữ liệu" description={error} />
+          <EmptyState
+            tone="error"
+            title="Không tải được dữ liệu"
+            description={error}
+          />
         ) : jobs.length === 0 ? (
           <EmptyState
             title="Chưa có lượt đồng bộ nào"
@@ -78,7 +145,10 @@ export default function SyncJobsExplorer() {
                 </thead>
                 <tbody>
                   {jobs.map((job) => (
-                    <tr key={job.id} className="transition-colors hover:bg-surface-muted">
+                    <tr
+                      key={job.id}
+                      className="transition-colors hover:bg-surface-muted"
+                    >
                       <td className="td">
                         <Link href={`/sync-jobs/${encodeURIComponent(job.id)}`}>
                           <StampId value={job.id} />
@@ -91,11 +161,19 @@ export default function SyncJobsExplorer() {
                         <StatusBadge status={job.status} />
                       </td>
                       <td className="td text-ink-muted">
-                        {formatNumber(job.fetched)} / {formatNumber(job.target_limit)}
+                        {formatNumber(job.fetched)} /{" "}
+                        {formatNumber(job.target_limit)}
                       </td>
                       <td className="td text-ink-muted">
-                        {formatNumber(job.inserted)} / {formatNumber(job.updated)} /{" "}
-                        <span className={job.failed_count > 0 ? "font-medium text-status-failed" : ""}>
+                        {formatNumber(job.inserted)} /{" "}
+                        {formatNumber(job.updated)} /{" "}
+                        <span
+                          className={
+                            job.failed_count > 0
+                              ? "font-medium text-status-failed"
+                              : ""
+                          }
+                        >
                           {formatNumber(job.failed_count)}
                         </span>
                       </td>
@@ -116,6 +194,8 @@ export default function SyncJobsExplorer() {
           </>
         )}
       </div>
+      <Toaster position="bottom-right" duration={2000}  ></Toaster>
     </div>
   );
+  
 }
