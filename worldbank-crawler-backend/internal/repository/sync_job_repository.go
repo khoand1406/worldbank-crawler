@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"time"
 
@@ -14,6 +15,18 @@ import (
 
 type SyncJobRepository struct {
 	db DBTX
+}
+
+func (r *SyncJobRepository) CountTotal(ctx context.Context, filter types.SyncJobFilterQuery) (int, error) {
+	whereQL, args := buildSyncJobWhere(filter)
+
+	query := `select count(*) as total from sync_jobs` + whereQL
+	var result int
+	err := r.db.QueryRow(ctx, query, args...).Scan(&result)
+	if err != nil {
+		return 0, fmt.Errorf("Failed from count total sync jobs")
+	}
+	return result, nil
 }
 
 func NewSyncJobRepository(db DBTX) *SyncJobRepository {
@@ -157,22 +170,23 @@ func (r *SyncJobRepository) FindByID(
 
 func (r *SyncJobRepository) List(
 	ctx context.Context,
-	limit int,
-	offset int,
+	filter types.SyncJobFilterQuery,
 ) ([]model.SyncJob, error) {
-	if limit <= 0 {
-		limit = 20
+	if filter.Limit <= 0 {
+		filter.Limit = 20
 	}
 
-	if limit > 100 {
-		limit = 100
+	if filter.Limit > 100 {
+		filter.Limit = 100
 	}
 
-	if offset < 0 {
-		offset = 0
+	if filter.Offset < 0 {
+		filter.Offset = 0
 	}
+	whereQl, args := buildSyncJobWhere(filter)
 
-	query := `
+	args = append(args, filter.Limit, filter.Offset)
+	query := fmt.Sprintf(`
 		SELECT
 			id,
 			source_type,
@@ -191,11 +205,13 @@ func (r *SyncJobRepository) List(
 			created_at,
 			updated_at
 		FROM sync_jobs
+		%s
 		ORDER BY created_at DESC
-		LIMIT $1 OFFSET $2
-	`
+		LIMIT $%d OFFSET $%d
+	`, whereQl, len(args)-1, len(args))
 
-	rows, err := r.db.Query(ctx, query, limit, offset)
+	rows, err := r.db.Query(ctx, query, args...)
+
 	if err != nil {
 		return nil, fmt.Errorf("list sync jobs failed: %w", err)
 	}
@@ -255,6 +271,30 @@ func (r *SyncJobRepository) List(
 	}
 
 	return jobs, nil
+}
+
+func buildSyncJobWhere(filter types.SyncJobFilterQuery) (string, []any) {
+	conditions := make([]string, 0)
+	args := make([]any, 0)
+
+	addCondition := func(condition string, value any) {
+		args = append(args, value)
+		conditions = append(conditions, fmt.Sprintf(condition, len(args)))
+	}
+
+	if filter.SourceType != "" {
+		addCondition("source_type = $%d", filter.SourceType)
+	}
+
+	if filter.Status != "" {
+		addCondition("status = $%d", string(filter.Status))
+	}
+
+	if len(conditions) == 0 {
+		return "", args
+	}
+
+	return " WHERE " + strings.Join(conditions, " AND "), args
 }
 
 func (r *SyncJobRepository) MarkRunning(

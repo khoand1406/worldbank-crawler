@@ -38,7 +38,7 @@ export default function Overview() {
 
     Promise.all([
       api.listDocuments({ page: 1, page_size: 50 }),
-      api.listSyncJobs(1, 50),
+      api.listSyncJobs({page: 1, pageSize: 50}),
     ])
       .then(([docsRes, jobsRes]) => {
         if (cancelled) return;
@@ -56,6 +56,7 @@ export default function Overview() {
       })
       .catch((err: unknown) => {
         if (cancelled) return;
+        console.log(err)
         setError(
           err instanceof ApiError ? err.message : "Đã xảy ra lỗi không xác định."
         );

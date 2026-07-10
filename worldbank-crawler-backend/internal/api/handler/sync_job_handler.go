@@ -13,6 +13,7 @@ import (
 	"worldbank-crawler/internal/model"
 	"worldbank-crawler/internal/repository"
 	"worldbank-crawler/internal/service"
+	types "worldbank-crawler/internal/type"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -145,7 +146,20 @@ func (h *SyncJobHandler) ListSyncJobs(w http.ResponseWriter, r *http.Request) {
 	limit := parseIntQuery(r, "limit", 20)
 	offset := parseIntQuery(r, "offset", 0)
 
-	jobs, err := h.syncJobRepo.List(r.Context(), limit, offset)
+	filter := types.SyncJobFilterQuery{
+		Limit:      parseIntQuery(r, "limit", limit),
+		Offset:     parseIntQuery(r, "offset", offset),
+		Status:     model.SyncJobStatus(r.URL.Query().Get("status")),
+		SourceType: r.URL.Query().Get("source_type"),
+	}
+
+	jobs, err := h.syncJobRepo.List(r.Context(), filter)
+	if err != nil {
+		api.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	total, err := h.syncJobRepo.CountTotal(r.Context(), filter)
 	if err != nil {
 		api.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -154,6 +168,7 @@ func (h *SyncJobHandler) ListSyncJobs(w http.ResponseWriter, r *http.Request) {
 	api.WriteJSON(w, http.StatusOK, map[string]any{
 		"items":  jobs,
 		"limit":  limit,
+		"total":  total,
 		"offset": offset,
 	})
 }

@@ -6,12 +6,13 @@ import {
   DocumentFilters,
   DocumentListResponse,
   SyncJob,
-  SyncJobListRawResponse,
   SyncJobListResponse,
   SyncJobMinialResponse,
   SyncJobRaw,
   WbDocument,
   WbDocumentDetailRaw,
+  ListSyncJobsParams,
+  SyncJobListRawResponse
 } from "./types";
 import { AppConfig } from "@/config/app.config";
 
@@ -104,23 +105,36 @@ export const api = {
     return mapDocumentDetail(res);
   },
 
-  async listSyncJobs(page = 1, pageSize = 20): Promise<SyncJobListResponse> {
-    const offset = (page - 1) * pageSize;
+  async listSyncJobs(
+  params: ListSyncJobsParams = {},
+): Promise<SyncJobListResponse> {
+  const {
+    page = 1,
+    pageSize = 20,
+    status,
+    sourceType,
+  } = params;
 
-    const qs = buildQuery({
-      limit: pageSize,
-      offset,
-    });
+  const offset = (page - 1) * pageSize;
 
-    const res = await request<SyncJobListRawResponse>(`/api/sync-jobs${qs}`);
+  const qs = buildQuery({
+    limit: pageSize,
+    offset,
+    status: status || undefined,
+    source_type: sourceType || undefined,
+  });
 
-    return {
-      data: res.items.map(mapSyncJob),
-      total: res.items.length,
-      limit: res.limit,
-      offset: res.offset,
-    };
-  },
+  const raw = await request<SyncJobListRawResponse>(
+    `/api/sync-jobs${qs}`,
+  );
+
+  return {
+    data: raw.items.map(item=> mapSyncJob(item)),
+    total: raw.total,
+    limit: raw.limit,
+    offset: raw.offset,
+  };
+},
 
   async getSyncJob(id: string): Promise<SyncJob> {
   const res = await request<SyncJobRaw>(

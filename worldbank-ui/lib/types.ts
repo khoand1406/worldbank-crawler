@@ -198,6 +198,7 @@ export interface SyncJobMinialResponse{
 
 export interface SyncJobListRawResponse {
   items: SyncJobRaw[];
+  total: number
   limit: number;
   offset: number;
 }
@@ -213,6 +214,13 @@ export interface CreateSyncJobPayload {
   source_type: SourceType;
   target_limit: number;
   params: SyncJobParams;
+}
+
+export interface ListSyncJobsParams {
+  page?: number;
+  pageSize?: number;
+  status?: SyncJobStatus | "";
+  sourceType?: string;
 }
 
 export interface AuditLogRaw {
