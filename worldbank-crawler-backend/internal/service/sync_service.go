@@ -354,16 +354,20 @@ func (s *SyncService) RunJob(ctx context.Context, jobId int64) error {
 
 	params, err := decodeSyncJobParams(job.Params)
 	if err != nil {
-		s.failJob(ctx, job.ID, err)
+		return s.failJob(ctx, job.ID, err)
 	}
 
 	source, err := s.syncSourceRepo.FindBySourceType(ctx, job.SourceType)
 	if err != nil {
-		s.failJob(ctx, job.ID, err)
+		return s.failJob(ctx, job.ID, err)
 	}
 
 	offset := job.CurrentOffset
 	fetched := job.Fetched
+
+	totalInserted := job.Inserted
+	totalUpdated := job.Updated
+	totalFailed := job.FailedCount
 
 	for fetched < job.TargetLimit {
 		rows := minInt(s.rowsPerPage, job.TargetLimit-fetched)
@@ -404,7 +408,7 @@ func (s *SyncService) RunJob(ctx context.Context, jobId int64) error {
 		_ = requestURL
 
 		if fetchErr != nil {
-			s.failJob(ctx, job.ID, fetchErr)
+			return s.failJob(ctx, job.ID, fetchErr)
 		}
 
 		if resp == nil {
@@ -412,7 +416,7 @@ func (s *SyncService) RunJob(ctx context.Context, jobId int64) error {
 		}
 
 		if err := s.syncLogRepo.SetTotalAvailable(ctx, job.ID, resp.Total); err != nil {
-			s.failJob(ctx, job.ID, err)
+			return s.failJob(ctx, job.ID, err)
 		}
 
 		if len(rawDocs) == 0 {
@@ -432,11 +436,13 @@ func (s *SyncService) RunJob(ctx context.Context, jobId int64) error {
 			s.emitJobUpdated(job.ID, model.SyncJobStatusFailed, processErr.Error())
 			return processErr
 		}
-
+		totalInserted += insertedCount
+		totalUpdated += updatedCount
+		totalFailed += failedCount
 		fetched += len(rawDocs)
 		offset = offsetAfterPage
 
-		s.emitJobProgress(job.ID, offset, fetched, insertedCount, updatedCount, failedCount, resp.Total)
+		s.emitJobProgress(job.ID, offset, fetched, totalInserted, totalUpdated, totalFailed, resp.Total)
 
 		log.Printf(
 			"sync job page completed: job_id=%d offset=%d rows=%d fetched=%d inserted=%d updated=%d failed=%d api_total=%d",
